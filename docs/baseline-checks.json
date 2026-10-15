@@ -1,0 +1,20 @@
+{
+  "python": "3.12.14",
+  "python_syntax_files": 35,
+  "syntax_errors": [],
+  "isolated_module_probes": [
+    {
+      "path": "core/activity/activity.py",
+      "result": "NameError",
+      "detail": "name 'ActivityType' is not defined"
+    },
+    {
+      "path": "core/activity/effect.py",
+      "result": "NameError",
+      "detail": "name 'Player' is not defined"
+    }
+  ],
+  "baseline_zip_bytes": 26084694,
+  "zip_is_installable_plugin": false,
+  "note": "Size probe only. No framework, scheduler, network or player database started."
+}

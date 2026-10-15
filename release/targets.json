@@ -1,0 +1,29 @@
+{
+  "schema": "farm.release-targets.v1",
+  "status": "design-only",
+  "source_repository": null,
+  "network_actions_enabled": false,
+  "targets": [
+    {
+      "name": "zhenxun",
+      "repository": "https://github.com/Shu-Ying/zhenxun_plugin_farm.git",
+      "observed_default_branch": "main",
+      "entry_directory": "integrations/zhenxun",
+      "enabled": false
+    },
+    {
+      "name": "astrbot",
+      "repository": "https://github.com/Shu-Ying/astrbot_plugin_farm.git",
+      "observed_default_branch": "main",
+      "entry_directory": "integrations/astrbot",
+      "enabled": false
+    },
+    {
+      "name": "nonebot",
+      "repository": "https://github.com/Shu-Ying/nonebot_plugin_farm.git",
+      "observed_default_branch": "main",
+      "entry_directory": "integrations/nonebot",
+      "enabled": false
+    }
+  ]
+}

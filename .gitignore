@@ -1,0 +1,113 @@
+# Python bytecode, native extensions and interpreter caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+
+# Virtual environments and local Python version selection
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Build and packaging outputs
+/build/
+/dist/
+/wheelhouse/
+*.egg-info/
+.eggs/
+*.egg
+pip-wheel-metadata/
+
+# Test, lint, typing, coverage and profiling outputs
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.tox/
+.nox/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.prof
+*.lprof
+
+# Local configuration and credentials; keep distributable templates
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+/secrets/
+/config.local.*
+/settings.local.*
+
+# Editors, operating system and temporary files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+*.tmp
+*.part
+
+# Farm runtime state: never version player data or generated images
+/data/
+/runtime/
+/cache/
+/tmp/
+/temp/
+/logs/
+/backups/
+/exports/
+/downloads/
+/uploads/
+/artifacts/
+/.local/
+**/farm_db/
+**/farm_res/
+*.log
+*.log.*
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.bak
+*.backup
+
+# Exact allowlist: bundled static crop catalogues, not player databases
+!/legacy/zhenxun_plugin_farm/resource/db/plant.db
+!/legacy/zhenxun_plugin_farm/resource/db/plant-test.db
+
+# Legacy downloads and generated render output
+/legacy/zhenxun_plugin_farm/config/sign_in.json
+/legacy/zhenxun_plugin_farm/config/signTemp.json
+/legacy/zhenxun_plugin_farm/resource/html/*.png
+
+# Local publication checkouts; not submodules or source directories
+/.release-workspaces/
+/.release-staging/
+/.release-cache/
+
+# Local agent installation and runtime state; AGENTS.md remains tracked
+/.agents/
+/.codex/
+/.codebase-memory/
+/.comet/*
+!/.comet/config.yaml

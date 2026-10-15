@@ -1,0 +1,93 @@
+{
+  "checked_on": "2026-10-15",
+  "repositories": [
+    {
+      "name": "zhenxun_plugin_farm",
+      "url": "https://github.com/Shu-Ying/zhenxun_plugin_farm.git",
+      "local_path": ".release-workspaces/zhenxun_plugin_farm",
+      "branch": "main",
+      "commit": "ac495ad6e94f414f5a642a0429f51e7affad3b2a",
+      "remote_head": "origin/main",
+      "status": "",
+      "tracked_files": 720,
+      "root_entries": [
+        ".gitignore",
+        "LICENSE",
+        "README.md",
+        "__init__.py",
+        "command.py",
+        "config",
+        "config.py",
+        "database",
+        "dbService.py",
+        "event",
+        "farm",
+        "json.py",
+        "log",
+        "request.py",
+        "resource",
+        "tool.py"
+      ],
+      "nested_agent_rules": [],
+      "local_exists": false,
+      "observation": "historical metadata collected before user requested deletion"
+    },
+    {
+      "name": "astrbot_plugin_farm",
+      "url": "https://github.com/Shu-Ying/astrbot_plugin_farm.git",
+      "local_path": ".release-workspaces/astrbot_plugin_farm",
+      "branch": "main",
+      "commit": "1f47aa84611e23a8f0814b9a9d236386a7bf4e13",
+      "remote_head": "origin/main",
+      "status": "",
+      "tracked_files": 727,
+      "root_entries": [
+        ".gitignore",
+        "LICENSE",
+        "README.md",
+        "_conf_schema.json",
+        "cfg.py",
+        "config",
+        "database",
+        "dbService.py",
+        "event",
+        "farm",
+        "json.py",
+        "log",
+        "main.py",
+        "metadata.yaml",
+        "request.py",
+        "requirements.txt",
+        "resource",
+        "tool.py",
+        "zhenxun_utils"
+      ],
+      "nested_agent_rules": [],
+      "local_exists": false,
+      "observation": "historical metadata collected before user requested deletion"
+    },
+    {
+      "name": "nonebot_plugin_farm",
+      "url": "https://github.com/Shu-Ying/nonebot_plugin_farm.git",
+      "local_path": ".release-workspaces/nonebot_plugin_farm",
+      "branch": "main",
+      "commit": "4fe60a6bde22375a7f81d2ed60aebfdb4f5fe93f",
+      "remote_head": "origin/main",
+      "status": "",
+      "tracked_files": 720,
+      "root_entries": [
+        ".github",
+        ".gitignore",
+        "LICENSE",
+        "README.md",
+        "nonebot_plugin_farm",
+        "pyproject.toml"
+      ],
+      "nested_agent_rules": [],
+      "local_exists": false,
+      "observation": "historical metadata collected before user requested deletion"
+    }
+  ],
+  "current_local_state": "deleted-at-user-request",
+  "network_actions_allowed": false
+}

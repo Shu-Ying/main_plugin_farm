@@ -1,0 +1,155 @@
+from nonebot import get_driver
+from nonebot.plugin import PluginMetadata
+from nonebot_plugin_apscheduler import scheduler
+
+from zhenxun.configs.utils import Command, PluginExtraData, RegisterConfig
+from zhenxun.services.log import logger
+from zhenxun.utils.message import MessageUtils
+
+from .command import diuse_farm, diuse_register, reclamation
+from .core import (
+    CHelpManager,
+    CShopManager,
+    g_pDBlocator,
+    g_pSqlManager,
+    g_pUserPool,
+    getFarmManager,
+    getSignInManager,
+)
+from .core.dbService import g_pDBService
+from .event import g_pEventManager
+from .utils import config, getJsonManager, getRequestManager
+
+__plugin_meta__ = PluginMetadata(
+    name="真寻农场",
+    description="快乐的农场时光",
+    usage="""
+    你也要种地?
+    指令：
+        at 开通农场
+        我的农场
+        农场详述
+        我的农场币
+        种子商店 [筛选关键字] [页数] or [页数]
+        购买种子 [作物/种子名称] [数量]
+        我的种子
+        播种 [作物/种子名称] [数量] (数量不填默认将最大可能播种
+        收获
+        铲除
+        我的作物
+        出售作物 [作物/种子名称] [数量] (不填写作物名将售卖仓库种全部作物 填作物名不填数量将指定作物全部出售
+        偷菜 at (每人每天只能偷5次
+        开垦
+        购买农场币 [数量] 数量为消耗金币的数量
+        更改农场名 [新农场名]
+        农场签到
+        土地升级 [地块ID]（通过农场详述获取）
+    """.strip(),
+    extra=PluginExtraData(
+        author="Art_Sakura",
+        version="1.5.2",
+        commands=[Command(command="我的农场")],
+        menu_type="群内小游戏",
+        configs=[
+            RegisterConfig(
+                key="绘制农场清晰度",
+                value="low",
+                help="我的农场返回图片的清晰度, [low, medium, hight, original]",
+                default_value="low",
+            ),
+            RegisterConfig(
+                key="动态背景",
+                value=True,
+                help="是否开启根据季节和节日变化的动态背景",
+                type=bool,
+                default_value=True,
+            ),
+            RegisterConfig(
+                key="签到图片样式",
+                value="text",
+                help="签到图片的样式, [text, html]",
+                default_value="text",
+            ),
+            RegisterConfig(
+                key="兑换倍数",
+                value="2",
+                help="金币兑换农场币的倍数 默认值为: 2倍",
+                default_value="2",
+            ),
+            RegisterConfig(
+                key="点券兑换倍数",
+                value="2000",
+                help="农场币兑换点券的倍数 比例为2000:1",
+                default_value="2000",
+            ),
+            RegisterConfig(
+                key="手续费",
+                value="0.2",
+                help="金币兑换农场币的手续费 默认值为: 0.2 实际意义为20%手续费",
+                default_value="0.2",
+            ),
+            RegisterConfig(
+                key="服务地址",
+                value="http://diuse.work",
+                help="签到、交易行、活动等服务器地址",
+                default_value="http://diuse.work",
+            ),
+        ],
+    ).to_dict(),
+)
+driver = get_driver()
+
+
+# 构造函数
+@driver.on_startup
+async def start():
+    # 数据库加载
+    await g_pSqlManager.init()
+
+    # 初始化数据库变量 和 加载作物数据库
+    await g_pDBService.init()
+
+    # 检查作物文件是否缺失 or 更新
+    await getRequestManager().initPlantDBFile()
+
+    await CHelpManager.createHelpImage()
+
+    # todayRewards = [
+    #     {
+    #         "imagePath": "../plant/ATTomato/icon.png",
+    #         "name": "金币",
+    #         "quantity": 100,
+    #     },
+    # ]
+
+    # logger.info(f"{todayRewards[0]}")
+
+    # cumulativeRewards = [
+    #     {
+    #         "imagePath": g_sResourcePath / "/plant/ATTomato/icon.png",
+    #         "name": "金币",
+    #         "quantity": 200,
+    #         "description": "累计签到1次",
+    #         "achieved": True,
+    #     },
+    # ]
+
+    # await g_pSignInManager.createSignImage(todayRewards, cumulativeRewards, 1, 1, 1)
+
+
+# 析构函数
+@driver.on_shutdown
+async def shutdown():
+    # 单独卸载 作物数据库
+    await g_pDBService.cleanup()
+
+    await g_pSqlManager.cleanup()
+
+
+@scheduler.scheduled_job(trigger="cron", hour=4, minute=30, id="signInFile")
+async def signInFile():
+    try:
+        await getJsonManager().initSignInFile()
+        await getRequestManager().initPlantDBFile()
+    except Exception as e:
+        logger.error("农场定时检查出错", e=e)

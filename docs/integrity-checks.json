@@ -1,0 +1,26 @@
+{
+  "status": "passed",
+  "files": 827,
+  "python_syntax_files": 35,
+  "json_files": 4,
+  "catalogues": [
+    {
+      "name": "plant.db",
+      "quick_check": "ok",
+      "tables": [
+        "plant",
+        "sqlite_sequence"
+      ]
+    },
+    {
+      "name": "plant-test.db",
+      "quick_check": "ok",
+      "tables": [
+        "plant",
+        "sqlite_sequence"
+      ]
+    }
+  ],
+  "errors": [],
+  "scope": "integrity and syntax only; no host or gameplay verified"
+}

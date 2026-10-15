@@ -1,0 +1,19 @@
+{
+  "git_branch": "main",
+  "git_remote": "",
+  "ignore_cases": 29,
+  "ignore_errors": [],
+  "ignored_baseline_files": [],
+  "broken_local_links": [],
+  "new_python_overlong_lines": [],
+  "source_hash_drift": [],
+  "local_release_workspace_exists": false,
+  "gitmodules_exists": false,
+  "helper_negative_checks": {
+    "hash_mismatch_detected": 827,
+    "destination_traversal_rejected": true
+  },
+  "legacy_text_attribute": "legacy/zhenxun_plugin_farm/command.py: text: unset",
+  "untracked_candidate_files": 858,
+  "embedded_git_directories": []
+}
