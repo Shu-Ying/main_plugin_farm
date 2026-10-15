@@ -4,7 +4,7 @@
 
 | 角色 | 远程地址 | 建议职责 |
 |---|---|---|
-| 开发主仓库 | 尚未提供；本地 D:/Work/farm | 业务、接入、测试、文档、构建的唯一开发源 |
+| 开发主仓库 | https://github.com/Shu-Ying/main_plugin_farm.git；本地 D:/Work/farm | 业务、接入、测试、文档、构建的唯一开发源 |
 | 真寻发布仓库 | https://github.com/Shu-Ying/zhenxun_plugin_farm.git | 真寻完整插件 |
 | AstrBot 发布仓库 | https://github.com/Shu-Ying/astrbot_plugin_farm.git | AstrBot 完整插件 |
 | NoneBot 发布仓库 | https://github.com/Shu-Ying/nonebot_plugin_farm.git | NoneBot 包及 PyPI 构建资料 |

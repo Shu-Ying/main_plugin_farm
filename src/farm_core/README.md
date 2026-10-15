@@ -1,6 +1,6 @@
-# 共享核心预留位置
+# 共享基础核心
 
-当前只有职责说明，未实现新核心。完整目标见 docs/02-architecture.md。
-实施时创建 domain、application、ports、infrastructure、presentation。
-禁止导入 nonebot、astrbot、zhenxun；内部模块采用相对导入。
-先实现注册、库存、资产和一个完整交易，不直接复制旧全局管理器。
+本轮已实现框架无关的作物目录、注册、交易及种植闭环。
+模块责任与限制见 docs/09-foundation.md，运行方式见根 README。
+运行无第三方依赖，导入不创建数据库、文件或后台线程。
+本包不是机器人插件入口；integrations 下接入尚未实现。

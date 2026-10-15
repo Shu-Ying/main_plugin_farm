@@ -1,7 +1,7 @@
 {
   "schema": "farm.release-targets.v1",
   "status": "design-only",
-  "source_repository": null,
+  "source_repository": "https://github.com/Shu-Ying/main_plugin_farm.git",
   "network_actions_enabled": false,
   "targets": [
     {

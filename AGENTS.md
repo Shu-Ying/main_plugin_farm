@@ -14,6 +14,10 @@
 - .release-workspaces 不进入主仓库。本轮用户要求停止拉取，已删除本地克隆；不得自行重新克隆、fetch、pull 或推送。
 - docs 中的框架接入和发布流水线属于设计，未实现部分不得报告为已完成。
 
+<comet-ambient-resume>
+<!-- Managed by Comet. Edits inside this block may be replaced by comet init/update. -->
+<!-- Contract: comet.resume_probe.v2 -->
+
 ## Comet Ambient Resume
 
 在这个仓库中，开始处理需要改动或调查的任务前，如果可能存在活跃 Comet workflow，把当前用户请求传入只读探针：`comet resume-probe . --stdin --json`。
