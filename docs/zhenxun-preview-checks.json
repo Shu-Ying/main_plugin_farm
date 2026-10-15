@@ -1,0 +1,29 @@
+{
+  "schema": "farm.zhenxun-preview-checks.v1",
+  "date": "2026-10-15",
+  "target": "Shu-Ying/zhenxun_plugin_farm",
+  "preview_branch": "farm-preview",
+  "package": {
+    "path": "dist/zhenxun-preview-ready/zhenxun_plugin_farm_preview-0.1.0-preview.1.zip",
+    "bytes": 12386909,
+    "sha256": "8fe66569a886111ce85187d5ecfe9ec68cc9aee9cd8311bd3fcff43239a61f85",
+    "files": 30,
+    "source_dirty": true
+  },
+  "checks": {
+    "runtime_regression_tests": 56,
+    "pillow_10_4_tests": 24,
+    "workflow_yaml_guards": "passed",
+    "independent_acceptance": "A1-A18 passed",
+    "final_zip_checksum": "passed"
+  },
+  "remote_operations_executed": false,
+  "real_bot_installed_or_started": false,
+  "limitations": [
+    "真实NoneBot依赖注入、权限及平台发图未运行验证",
+    "本机Windows；Linux和GitHub工作流仅配置，未实际运行",
+    "独立测试库不读取旧资产；沿用原指令，需停用旧插件避免冲突",
+    "缺少历史455阶段图片仍占位；字体需自行合法提供",
+    "本地dirty产物仅供测试，正式同步需提交后的干净源码"
+  ]
+}

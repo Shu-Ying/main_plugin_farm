@@ -7,6 +7,8 @@
 |---|---|
 | [09-foundation.md](09-foundation.md) | 已实现的第一批核心、API、测试与限制 |
 | [10-rendering.md](10-rendering.md) | 共享图片工具、农场绘制、缓存、编码与接入 |
+| [11-zhenxun-preview.md](11-zhenxun-preview.md) | 真寻原指令预览、构建/校验/安装和可选同步 |
+| [zhenxun-preview-checks.json](zhenxun-preview-checks.json) | 最终测试包大小/哈希及实际验证边界 |
 | [render-benchmark.json](render-benchmark.json) | 本机合成数据的冷暖缓存与编码测量 |
 | [01-roadmap.md](01-roadmap.md) | 长期目标、实施顺序、里程碑与验收 |
 | [02-architecture.md](02-architecture.md) | 分层、目录、依赖、接入与接口设计 |

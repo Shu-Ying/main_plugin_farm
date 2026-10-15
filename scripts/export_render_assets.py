@@ -45,7 +45,10 @@ def export(root):
             metadata["images"][name] = {
                 "size": size, "sha256": hashlib.sha256(content).hexdigest(),
             }
-            bundle.writestr(ZipInfo(name, (2020, 1, 1, 0, 0, 0)), content)
+            item = ZipInfo(name, (2020, 1, 1, 0, 0, 0))
+            item.create_system = 3
+            item.external_attr = 0o100644 << 16
+            bundle.writestr(item, content)
     return output.getvalue(), (
         json.dumps(metadata, ensure_ascii=False, sort_keys=True, indent=2)
         + "\n"

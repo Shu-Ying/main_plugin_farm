@@ -1,6 +1,6 @@
 {
   "schema": "farm.release-targets.v1",
-  "status": "design-only",
+  "status": "zhenxun-preview",
   "source_repository": "https://github.com/Shu-Ying/main_plugin_farm.git",
   "network_actions_enabled": false,
   "targets": [
@@ -9,7 +9,9 @@
       "repository": "https://github.com/Shu-Ying/zhenxun_plugin_farm.git",
       "observed_default_branch": "main",
       "entry_directory": "integrations/zhenxun",
-      "enabled": false
+      "enabled": true,
+      "preview_branch": "farm-preview",
+      "publish_by_default": false
     },
     {
       "name": "astrbot",

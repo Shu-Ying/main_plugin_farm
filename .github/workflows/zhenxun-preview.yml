@@ -1,0 +1,106 @@
+name: Zhenxun preview
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Preview version
+        default: 0.1.0-preview.1
+        required: true
+        type: string
+      publish:
+        description: Sync fixed farm-preview branch in zhenxun repository
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: farm-preview-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        pillow: ['10.4.0', '12.3.0']
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONPATH: src
+      PYTHONIOENCODING: utf-8
+      PILLOW_VERSION: ${{ matrix.pillow }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        shell: bash
+        run: >-
+          python -m pip install "Pillow==$PILLOW_VERSION"
+          setuptools wheel "PyYAML>=6,<7"
+      - run: python scripts/ci_font.py
+      - run: python scripts/check_workflows.py
+      - run: python scripts/verify_foundation.py
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      PREVIEW_VERSION: ${{ inputs.version || '0.1.0-preview.1' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Build selected target only
+        run: >-
+          python scripts/build_zhenxun.py
+          --output dist/zhenxun-preview --version "$PREVIEW_VERSION"
+      - name: Copy standalone helper scripts
+        run: |
+          cp scripts/install_zhenxun.py dist/zhenxun-preview/
+          cp scripts/verify_zhenxun.py dist/zhenxun-preview/
+      - uses: actions/upload-artifact@v7
+        with:
+          name: zhenxun-preview
+          path: dist/zhenxun-preview/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  sync-preview:
+    if: >-
+      github.event_name == 'workflow_dispatch' && inputs.publish &&
+      github.ref == 'refs/heads/main' &&
+      github.repository == 'Shu-Ying/main_plugin_farm'
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    environment: zhenxun-preview
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v8
+        with:
+          name: zhenxun-preview
+          path: incoming
+      - name: Publish validated preview only
+        env:
+          FARM_RELEASE_TOKEN: ${{ secrets.FARM_RELEASE_TOKEN }}
+        run: >-
+          python scripts/publish_zhenxun.py
+          incoming/zhenxun_plugin_farm_preview-*.zip --publish

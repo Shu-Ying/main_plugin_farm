@@ -1,0 +1,160 @@
+import importlib.util
+import base64
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+from zipfile import ZipFile
+from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+try:
+    from build_zhenxun import build
+    from install_zhenxun import install
+    from verify_zhenxun import verify_package
+except ImportError:
+    build = None
+
+
+class ZhenxunPackageTests(unittest.TestCase):
+    def setUp(self):
+        self.assertIsNotNone(build, "真寻打包功能未实现")
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.output = self.root / "bundle"
+        self.bundle = build(ROOT, self.output, "0.1.0-preview.1")
+
+    def test_reproducible_private_complete_package(self):
+        other = build(ROOT, self.root / "second", "0.1.0-preview.1")
+        self.assertEqual(self.bundle.read_bytes(), other.read_bytes())
+        manifest = verify_package(self.bundle)
+        self.assertEqual(manifest["target"], "zhenxun")
+        self.assertEqual(manifest["version"], "0.1.0-preview.1")
+        self.assertIn("dirty", manifest["source"])
+        with ZipFile(self.bundle) as archive:
+            paths = archive.namelist()
+            self.assertTrue(any(p.endswith("assets.zip") for p in paths))
+            self.assertFalse(any("astrbot" in p or "legacy/" in p
+                                 for p in paths))
+            source = archive.read(next(
+                p for p in paths if p.endswith("farm_render/models.py")
+            )).decode()
+            self.assertIn("from ..farm_core.domain", source)
+            self.assertNotIn("from farm_core.domain", source)
+        with self.assertRaises(FileExistsError):
+            build(ROOT, self.output, "0.1.0-preview.1")
+
+    def test_install_and_existing_target_are_safe(self):
+        plugins = self.root / "plugins"
+        plugins.mkdir()
+        target = install(self.bundle, plugins)
+        sentinel = target / "do-not-overwrite.txt"
+        sentinel.write_text("preserved")
+        with self.assertRaises(FileExistsError):
+            install(self.bundle, plugins)
+        self.assertEqual(sentinel.read_text(), "preserved")
+        self.assertTrue((target / "__init__.py").is_file())
+
+    def test_tampering_extra_path_and_traversal_rejected(self):
+        for name in ("../outside.txt", "C:/escape.txt", "extra.txt",
+                     "..\\outside.txt"):
+            with self.subTest(name=name):
+                bad = self.root / (str(len(name)) + ".zip")
+                bad.write_bytes(self.bundle.read_bytes())
+                with ZipFile(bad, "a") as archive:
+                    archive.writestr(name, "bad")
+                with self.assertRaises(ValueError):
+                    verify_package(bad)
+        bad = self.root / "corrupt.zip"
+        with ZipFile(self.bundle) as original, ZipFile(bad, "w") as changed:
+            for item in original.infolist():
+                content = original.read(item.filename)
+                if item.filename.endswith("requirements.txt"):
+                    content += b"bad\n"
+                changed.writestr(item, content)
+        with self.assertRaises(ValueError):
+            install(bad, self.root)
+        self.assertFalse((self.root / "zhenxun_plugin_farm_preview").exists())
+
+    def test_publisher_is_fixed_target_and_dry_by_default(self):
+        from publish_zhenxun import publish
+        report = publish(self.bundle)
+        self.assertFalse(report["published"])
+        self.assertEqual(report["branch"], "farm-preview")
+        self.assertEqual(report["repository"], "Shu-Ying/zhenxun_plugin_farm")
+        self.assertNotIn("token", json.dumps(report))
+        with self.assertRaises(ValueError):
+            build(ROOT, self.root / "bad", "bad; echo secret")
+
+    def clean_package(self):
+        from verify_zhenxun import read_package, MANIFEST, ROOT_NAME
+        files = read_package(self.bundle)
+        manifest = json.loads(files[MANIFEST])
+        manifest["source"]["dirty"] = False
+        files[MANIFEST] = json.dumps(manifest).encode()
+        path = self.root / "clean.zip"
+        with ZipFile(path, "w") as archive:
+            for name, content in files.items():
+                archive.writestr(f"{ROOT_NAME}/{name}", content)
+        return path, manifest
+
+    def test_publish_uses_nonforced_managed_branch_and_rejects_race(self):
+        from publish_zhenxun import publish
+        package, manifest = self.clean_package()
+        for race in (False, True):
+            calls = []
+            reads = []
+
+            def request(method, path, data):
+                calls.append((method, path, data))
+                if path == "":
+                    return {"default_branch":"main"}
+                if path.startswith("contents/"):
+                    return {"encoding":"base64", "content":base64.b64encode(
+                        json.dumps(manifest).encode(),
+                    ).decode()}
+                if method == "GET":
+                    reads.append(1)
+                    return {"object":{"sha":(
+                        "raced" if race and len(reads) > 1 else "parent"
+                    )}}
+                return {"sha":"created"}
+
+            with patch.dict("os.environ", {"FARM_RELEASE_TOKEN":"unit-test"}):
+                if race:
+                    with self.assertRaises(RuntimeError):
+                        publish(package, True, request)
+                    self.assertFalse(any(c[0] == "PATCH" for c in calls))
+                else:
+                    self.assertTrue(publish(
+                        package, True, request,
+                    )["published"])
+                    self.assertIn(("PATCH", "git/refs/heads/farm-preview", {
+                        "sha":"created", "force":False,
+                    }), calls)
+
+    def test_symlink_duplicate_and_default_branch_rejected(self):
+        from publish_zhenxun import publish
+        from zipfile import ZipInfo
+        package, _ = self.clean_package()
+        with patch.dict("os.environ", {"FARM_RELEASE_TOKEN":"unit-test"}):
+            with self.assertRaises(ValueError):
+                publish(package, True, lambda *args: {
+                    "default_branch":"farm-preview",
+                })
+        for kind in ("duplicate", "link"):
+            bad = self.root / (kind + ".zip")
+            bad.write_bytes(self.bundle.read_bytes())
+            with ZipFile(bad, "a") as archive:
+                item = ZipInfo("zhenxun_plugin_farm_preview/extra")
+                if kind == "duplicate":
+                    item.filename = archive.namelist()[0]
+                else:
+                    item.create_system = 3
+                    item.external_attr = 0o120777 << 16
+                archive.writestr(item, b"outside")
+            with self.assertRaises(ValueError):
+                verify_package(bad)

@@ -5,6 +5,8 @@
 *.toml text eol=lf
 *.yaml text eol=lf
 *.yml text eol=lf
+*.txt text eol=lf
+LICENSE text eol=lf
 *.html text eol=lf
 *.sh text eol=lf
 *.ps1 text eol=lf
@@ -14,6 +16,8 @@
 *.db binary
 *.woff binary
 *.woff2 binary
+*.zip binary
+*.webp binary
 
 # Preserve exact legacy bytes so manifest hashes survive checkout
 legacy/** -text
