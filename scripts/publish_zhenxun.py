@@ -13,9 +13,12 @@ REPOSITORY = "Shu-Ying/zhenxun_plugin_farm"
 BRANCH = "farm-preview"
 
 
-def github(method, path, payload, token):
+def github(method, path, payload, token, allow_missing=False):
+    url = f"https://api.github.com/repos/{REPOSITORY}"
+    if path:
+        url += f"/{path}"
     request = Request(
-        f"https://api.github.com/repos/{REPOSITORY}/{path}",
+        url,
         data=json.dumps(payload).encode() if payload is not None else None,
         headers={"Authorization": f"Bearer {token}",
                  "Accept": "application/vnd.github+json",
@@ -26,10 +29,10 @@ def github(method, path, payload, token):
         with urlopen(request, timeout=30) as response:
             return json.load(response)
     except HTTPError as error:
-        if error.code == 404 and method == "GET":
+        if error.code == 404 and method == "GET" and allow_missing:
             return None
         raise RuntimeError(
-            f"GitHub request failed: HTTP {error.code}",
+            f"GitHub request failed: {method} {url}: HTTP {error.code}",
         ) from None
 
 
@@ -47,9 +50,12 @@ def publish(package, confirmed=False, request=None):
         raise ValueError("Configure FARM_RELEASE_TOKEN in a protected job")
     call = request or (lambda method, path, data: github(
         method, path, data, token,
+        allow_missing=path.startswith(("git/ref/heads/", "contents/")),
     ))
     repository = call("GET", "", None)
-    if not repository or repository.get("default_branch") == BRANCH:
+    if not repository:
+        raise ValueError(f"Target repository is not accessible: {REPOSITORY}")
+    if repository.get("default_branch") == BRANCH:
         raise ValueError("Preview must not be the repository default branch")
     ref = call("GET", f"git/ref/heads/{BRANCH}", None)
     parent = ref["object"]["sha"] if ref else None

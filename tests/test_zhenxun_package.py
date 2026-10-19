@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from zipfile import ZipFile
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -16,6 +17,40 @@ try:
     from verify_zhenxun import verify_package
 except ImportError:
     build = None
+
+
+class PublisherRequestTests(unittest.TestCase):
+    def test_repository_url_has_no_trailing_slash(self):
+        from publish_zhenxun import github
+        with patch("publish_zhenxun.urlopen") as opened:
+            opened.return_value.__enter__.return_value.read.return_value = (
+                b'{"default_branch": "main"}'
+            )
+            self.assertEqual(github("GET", "", None, "test-token"), {
+                "default_branch": "main",
+            })
+        request = opened.call_args.args[0]
+        self.assertEqual(request.full_url,
+                         "https://api.github.com/repos/"
+                         "Shu-Ying/zhenxun_plugin_farm")
+
+    def test_repository_404_is_not_treated_as_missing_branch(self):
+        from publish_zhenxun import github
+        error = HTTPError("https://api.github.com", 404, "Not Found",
+                          {}, None)
+        with patch("publish_zhenxun.urlopen", side_effect=error):
+            with self.assertRaisesRegex(RuntimeError, "HTTP 404"):
+                github("GET", "", None, "test-token")
+
+    def test_optional_resource_404_returns_none(self):
+        from publish_zhenxun import github
+        error = HTTPError("https://api.github.com", 404, "Not Found",
+                          {}, None)
+        with patch("publish_zhenxun.urlopen", side_effect=error):
+            self.assertIsNone(github(
+                "GET", "git/ref/heads/farm-preview", None, "test-token",
+                allow_missing=True,
+            ))
 
 
 class ZhenxunPackageTests(unittest.TestCase):
@@ -135,6 +170,33 @@ class ZhenxunPackageTests(unittest.TestCase):
                     self.assertIn(("PATCH", "git/refs/heads/farm-preview", {
                         "sha":"created", "force":False,
                     }), calls)
+
+    def test_publish_creates_missing_preview_branch(self):
+        from publish_zhenxun import publish
+        package, _ = self.clean_package()
+        calls = []
+
+        def request(method, path, data):
+            calls.append((method, path, data))
+            if path == "":
+                return {"default_branch": "main"}
+            if method == "GET":
+                return None
+            return {"sha": "created"}
+
+        with patch.dict("os.environ", {"FARM_RELEASE_TOKEN": "unit-test"}):
+            self.assertTrue(publish(package, True, request)["published"])
+        self.assertIn(("POST", "git/refs", {
+            "ref": "refs/heads/farm-preview", "sha": "created",
+        }), calls)
+        self.assertFalse(any(c[0] == "PATCH" for c in calls))
+
+    def test_inaccessible_repository_has_distinct_error(self):
+        from publish_zhenxun import publish
+        package, _ = self.clean_package()
+        with patch.dict("os.environ", {"FARM_RELEASE_TOKEN": "unit-test"}):
+            with self.assertRaisesRegex(ValueError, "not accessible"):
+                publish(package, True, lambda *args: None)
 
     def test_symlink_duplicate_and_default_branch_rejected(self):
         from publish_zhenxun import publish
