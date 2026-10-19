@@ -52,8 +52,8 @@ class PlotView:
     state: str  # empty/growing/ripe/withered。
     sprite: str = ""  # 包内受控素材名，不来自用户路径。
     stage: int = 0  # 本季展示阶段。
-    offset: tuple[int, int] = (0, 0)  # 旧素材中心偏移。
-    size: tuple[int, int] | None = None  # 萌芽/枯萎原始尺寸覆盖。
+    pest_count: int = 0  # 当前可见虫数；参与成图缓存键。
+    pest_frames: tuple[str, ...] = ()  # 按虫序稳定选择的包内帧，参与缓存键。
 
 
 @dataclass(frozen=True)

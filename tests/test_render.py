@@ -90,7 +90,7 @@ class RenderTests(unittest.TestCase):
         self.assertGreater(view(again, again.mature_at - 1).stage, 0)
         dead = replace(again, harvest_count=3)
         self.assertEqual(view(dead, 999999).state, "withered")
-        self.assertEqual(view(dead, 999999).sprite, "plant/basic/9.png")
+        self.assertEqual(view(dead, 999999).sprite, "webgl/wither.png")
 
     def test_result_cache_visible_state_scope_and_time(self):
         plant = self.plant
@@ -112,6 +112,63 @@ class RenderTests(unittest.TestCase):
         self.assertFalse(self.renderer.render(
             self.who, data, 0, avatar=b"changed",
         ).cache_hit)
+        changed = replace(data, account=replace(data.account, experience=200))
+        self.assertFalse(self.renderer.render(self.who, changed, 0).cache_hit)
+
+    def test_legacy_panel_assets_avatar_size_and_layer_order(self):
+        avatar = BytesIO()
+        Image.new("RGB", (80, 40), "red").save(avatar, "PNG")
+        scene = self.renderer.scene(self.who, snapshot(), 0)
+        for width in (1024, 1536, 3072):
+            options = RenderOptions(width=width)
+            s = lambda n: round(n * width / 3072)
+            actual = Canvas.new((width, s(1872)))
+            expected = Canvas.new((width, s(1872)))
+            name = "background/userInfo.png"
+            size = self.renderer.assets.metadata["images"][name]["size"]
+            expected.paste(self.renderer.assets.image(
+                name, tuple(s(n) for n in size),
+            ), (s(100), s(30)))
+            expected.paste(Image.new("RGBA", (s(140), s(150)), "red"),
+                           (s(125), s(85)))
+            name = "background/frame/frame.png"
+            size = self.renderer.assets.metadata["images"][name]["size"]
+            expected.paste(self.renderer.assets.image(
+                name, tuple(s(n) for n in size),
+            ), (s(75), s(44)))
+            with patch.object(actual, "text"), patch.object(actual, "rectangle"):
+                self.renderer._panel(actual, scene, options, avatar.getvalue())
+            self.assertEqual(actual.image.tobytes(), expected.image.tobytes())
+
+    def test_legacy_panel_fields_progress_and_level_boundaries(self):
+        options = RenderOptions(width=3072)
+        for exp, level, current, threshold in (
+            (0, 0, 0, 200), (199, 0, 199, 200), (200, 1, 0, 600),
+            (599, 1, 399, 600), (600, 2, 0, 1200), (3420, 5, 420, 4200),
+        ):
+            data = snapshot(name="农场", point=12580, vip_point=36,
+                            experience=exp)
+            scene = self.renderer.scene(self.who, data, 0)
+            canvas = Canvas.new((3072, 1872))
+            with patch.object(canvas, "text") as text, patch.object(
+                canvas, "rectangle",
+            ) as rectangle:
+                self.renderer._panel(canvas, scene, options, None)
+            values = [(call.args[0], call.args[1])
+                      for call in text.call_args_list]
+            self.assertEqual(values, [
+                ((300, 92), "农场"),
+                ((365, 164), f"{current} / {threshold}"),
+                ((570, 158), str(level)),
+                ((330, 211), "12580"), ((570, 211), "36"),
+            ])
+            progress = current * 247 // threshold
+            if progress:
+                rectangle.assert_called_once_with(
+                    (292, 164, 292 + progress, 189), (171, 194, 41),
+                )
+            else:
+                rectangle.assert_not_called()
 
     def test_lru_budget_and_shared_image_safety(self):
         cache = ByteLRU(10)

@@ -8,6 +8,7 @@ import shlex
 
 from ._vendor.farm_core import Catalogue, FarmService, Identity, SQLiteStore
 from ._vendor.farm_core.domain import FarmError
+from ._vendor.farm_core.storage import SCHEMA_VERSION
 from ._vendor.farm_core.presentation import receipt_text, snapshot_text
 from ._vendor.farm_render import FarmRenderer, RenderOptions, RenderService
 
@@ -19,17 +20,25 @@ COMMANDS = {
     "种子商店":"shop", "农场帮助":"help", "购买种子":"buy",
     "播种":"sow", "收获":"harvest", "铲除":"eradicate",
     "作物加锁":"lock", "作物解锁":"unlock", "出售作物":"sell",
+    "农场除虫":"clear_pests", "除虫":"clear_pests",
 }
 HELP = (
     "开通农场 [名称]｜我的农场 [高清]｜农场详述\n"
     "种子商店 [页码]｜购买种子 作物 数量｜播种 作物 [数量]\n"
-    "收获｜铲除｜我的种子｜我的作物\n"
+    "收获｜铲除｜农场除虫｜我的种子｜我的作物\n"
     "作物加锁 作物｜作物解锁 作物｜出售作物 [作物] [数量]\n"
+    "作物可填写名称或 #编号；同名作物请使用商店或仓库中的编号。\n"
+    "每只虫使生长速度降低5%；成熟时每只虫使本季减产5%。\n"
+    "成熟后除虫不能恢复本季减产；生长期间可发送：农场除虫。\n"
     "本版使用独立预览数据库，不会读取旧版资产。"
 )
 ERRORS = {
     "not_registered":"请先发送：开通农场",
     "unknown_plant":"没有这种作物，请查看种子商店。",
+    "ambiguous_plant":"存在同名作物，请使用商店或仓库中的 #编号。",
+    "plant_not_purchasable":"该种子当前不出售，已有种子仍可播种。",
+    "plant_disabled":"该作物已停用，暂不能购买或播种。",
+    "unsupported_crop_type":"该条目不支持作为普通作物种植。",
     "invalid_integer":"数量必须为有效的正整数。",
     "insufficient_funds":"余额不足。",
     "insufficient_stock":"库存不足。",
@@ -38,6 +47,7 @@ ERRORS = {
     "nothing_to_harvest":"当前没有成熟作物。",
     "nothing_to_eradicate":"当前没有枯萎作物。",
     "nothing_to_sell":"当前没有可出售作物。",
+    "nothing_to_clear":"当前没有虫子需要清除。",
     "operation_conflict":"该事件已处理但参数不一致，请发送新消息。",
 }
 
@@ -53,9 +63,10 @@ def operation_id(bot_id, platform, user_id, message_id, action):
 
 class Runtime:
     def __init__(self, data_dir, font_path=None, deployment="zhenxun-preview",
-                 image_format="AUTO"):
+                 image_format="AUTO", *, font_dir=None):
         self.data_dir = Path(data_dir).resolve()
         self.font_path = font_path
+        self.font_dir = Path(font_dir or "resources/font")
         self.deployment = deployment
         self.image_format = image_format
         self.store = SQLiteStore(self.data_dir / "farm-preview.sqlite3")
@@ -68,7 +79,6 @@ class Runtime:
         if self.started:
             return
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        await self.store.initialize()
         self.log_handler = logging.FileHandler(
             self.data_dir / "farm-preview.log", encoding="utf-8",
         )
@@ -77,13 +87,37 @@ class Runtime:
         ))
         logging.getLogger(__package__).setLevel(logging.INFO)
         logging.getLogger(__package__).addHandler(self.log_handler)
+        try:
+            await self.store.initialize(catalogue=self.service.catalogue)
+        except Exception:
+            logger.error("farm preview database initialization failed")
+            await self.close()
+            raise
         if self.font_path:
+            candidates = [Path(self.font_path)]
+        else:
+            candidates = [self.font_dir / name for name in (
+                "HYWenHei-85W.ttf", "msyh.ttf", "syht.otf", "syst.otf",
+                "AlibabaHealthFont2.0CN-85B.ttf",
+            )]
+            candidates.extend(Path(name) for name in (
+                "C:/Windows/Fonts/msyh.ttc", "C:/Windows/Fonts/simsun.ttc",
+                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+                "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+            ))
+        for candidate in candidates:
+            if not candidate.is_file():
+                continue
             try:
-                self.rendering = RenderService(FarmRenderer(self.font_path))
+                self.rendering = RenderService(FarmRenderer(candidate))
+                logger.info("farm preview font selected file=%s", candidate.name)
+                break
             except (ValueError, OSError):
-                logger.warning("farm preview font unavailable; text mode only")
+                logger.warning("farm preview font candidate is not loadable")
+        if self.rendering is None:
+            logger.warning("farm preview font unavailable; text mode only")
         self.started = True
-        logger.info("farm preview initialized schema=1")
+        logger.info("farm preview initialized schema=%s", SCHEMA_VERSION)
 
     async def close(self):
         try:
@@ -115,6 +149,7 @@ class Runtime:
                     "eradicate":"eradicate", "lock-plant":"lock",
                     "unlock-plant":"unlock", "sell-plant":"sell",
                     "farm-help":"help",
+                    "clear-pests":"clear_pests",
                 }
                 if args[0] in aliases:
                     action = aliases[args[0]]
@@ -129,11 +164,13 @@ class Runtime:
                 if not 1 <= page <= 100 or len(args) > 1:
                     raise ValueError()
                 plants = sorted(
-                    self.service.catalogue, key=lambda p: p.plant_id,
+                    (p for p in self.service.catalogue if p.buyable),
+                    key=lambda p: p.plant_id,
                 )
                 chunk = plants[(page-1)*12:page*12]
                 return "种子商店 " + str(page) + "页\n" + "\n".join(
-                    f"{p.name}：{p.cost}{'点券' if p.is_vip else '农场币'}"
+                    f"{p.name}（#{p.plant_id}）："
+                    f"{p.cost}{'点券' if p.is_vip else '农场币'}"
                     f" / 等级{p.level}" for p in chunk
                 )
             if action == "inventory":
@@ -175,7 +212,7 @@ class Runtime:
                 receipt = await self.service.lock(
                     who, args[0], action == "lock", op,
                 )
-            elif action in ("harvest", "eradicate"):
+            elif action in ("harvest", "eradicate", "clear_pests"):
                 if args:
                     raise ValueError()
                 receipt = await getattr(self.service, action)(who, op)

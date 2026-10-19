@@ -76,46 +76,52 @@ class SQLiteRepository:
             ),
         )
 
-    def item(self, name: str) -> InventoryItem:
+    def item(self, plant: Plant) -> InventoryItem:
         row = self._db.execute(
             "SELECT name, seeds, crops, locked FROM inventory "
-            "WHERE identity=? AND name=?", (self._identity, name),
+            "WHERE identity=? AND plant_id=?",
+            (self._identity, plant.plant_id),
         ).fetchone()
         if row is None:
-            return InventoryItem(name)
+            return InventoryItem(plant.name, plant_id=plant.plant_id)
         return InventoryItem(
-            row["name"], row["seeds"], row["crops"], bool(row["locked"]),
+            plant.name, row["seeds"], row["crops"], bool(row["locked"]),
+            plant.plant_id,
         )
 
     def items(self) -> tuple[InventoryItem, ...]:
         rows = self._db.execute(
-            "SELECT name, seeds, crops, locked FROM inventory "
-            "WHERE identity=? ORDER BY name", (self._identity,),
+            "SELECT plant_id, name, seeds, crops, locked FROM inventory "
+            "WHERE identity=? ORDER BY name, plant_id", (self._identity,),
         ).fetchall()
         return tuple(
-            InventoryItem(r["name"], r["seeds"], r["crops"], bool(r["locked"]))
+            InventoryItem(
+                r["name"], r["seeds"], r["crops"], bool(r["locked"]),
+                r["plant_id"],
+            )
             for r in rows
         )
 
-    def stock(self, name: str, seeds: int = 0, crops: int = 0) -> None:
-        previous = self.item(name)
+    def stock(self, plant: Plant, seeds: int = 0, crops: int = 0) -> None:
+        previous = self.item(plant)
         new_seeds, new_crops = previous.seeds + seeds, previous.crops + crops
         if min(new_seeds, new_crops) < 0:
             raise FarmError("insufficient_stock")
         integer(new_seeds)
         integer(new_crops)
         self._db.execute(
-            "INSERT INTO inventory(identity, name, seeds, crops) "
-            "VALUES (?, ?, ?, ?) ON CONFLICT(identity, name) "
-            "DO UPDATE SET seeds=excluded.seeds, crops=excluded.crops",
-            (self._identity, name, new_seeds, new_crops),
+            "INSERT INTO inventory(identity, plant_id, name, seeds, crops) "
+            "VALUES (?, ?, ?, ?, ?) ON CONFLICT(identity, plant_id) "
+            "DO UPDATE SET name=excluded.name, seeds=excluded.seeds, "
+            "crops=excluded.crops",
+            (self._identity, plant.plant_id, plant.name, new_seeds, new_crops),
         )
 
-    def lock(self, name: str, locked: bool) -> None:
-        self.stock(name)
+    def lock(self, plant: Plant, locked: bool) -> None:
+        self.stock(plant)
         self._db.execute(
-            "UPDATE inventory SET locked=? WHERE identity=? AND name=?",
-            (int(locked), self._identity, name),
+            "UPDATE inventory SET locked=? WHERE identity=? AND plant_id=?",
+            (int(locked), self._identity, plant.plant_id),
         )
 
     def plots(self) -> tuple[Plot, ...]:
@@ -130,6 +136,9 @@ class SQLiteRepository:
                     Plant(**json.loads(r["plant"])) if r["plant"] else None,
                     r["mature_at"], r["harvest_count"],
                     r["yield_bonus"], r["experience_bonus"],
+                    r["pest_count"], r["pest_spawned"], r["growth_remaining"],
+                    r["growth_updated_at"], r["next_pest_at"],
+                    r["maturity_pests"],
                 )
                 for r in rows
             )
@@ -143,10 +152,15 @@ class SQLiteRepository:
         )
         cursor = self._db.execute(
             "UPDATE plots SET plant=?, mature_at=?, harvest_count=?, "
-            "yield_bonus=?, experience_bonus=? WHERE identity=? AND slot=?",
+            "yield_bonus=?, experience_bonus=?, pest_count=?, pest_spawned=?, "
+            "growth_remaining=?, growth_updated_at=?, next_pest_at=?, "
+            "maturity_pests=? WHERE identity=? AND slot=?",
             (
                 data, plot.mature_at, plot.harvest_count, plot.yield_bonus,
-                plot.experience_bonus, self._identity, plot.slot,
+                plot.experience_bonus, plot.pest_count, plot.pest_spawned,
+                plot.growth_remaining, plot.growth_updated_at,
+                plot.next_pest_at, plot.maturity_pests,
+                self._identity, plot.slot,
             ),
         )
         if cursor.rowcount != 1:

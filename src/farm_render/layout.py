@@ -3,8 +3,22 @@
 import hashlib
 
 from farm_core.domain import Identity, Snapshot, integer
+from farm_core.pests import advance_plot
 
 from .models import PlotView, Scene
+
+
+def pest_frames(scope, plot, frames):
+    available = list(frames)
+    chosen = []
+    for index in range(plot.pest_count):
+        seed = (
+            f"{scope}:{plot.slot}:{plot.plant.plant_id}:"
+            f"{plot.harvest_count}:{index}"
+        )
+        number = int.from_bytes(hashlib.sha256(seed.encode()).digest(), "big")
+        chosen.append(available.pop(number % len(available)))
+    return tuple(chosen)
 
 
 def scene_from_snapshot(identity, snapshot, now, metadata):
@@ -17,42 +31,46 @@ def scene_from_snapshot(identity, snapshot, now, metadata):
     ):
         raise ValueError("Invalid plot slots")
     views = []
+    scope = hashlib.sha256(identity.key.encode()).hexdigest()
     for plot in sorted(snapshot.plots, key=lambda p: p.slot):
+        plot = advance_plot(plot, now)
         if plot.plant is None:
             views.append(PlotView(plot.slot, "empty"))
             continue
         if plot.withered:
             views.append(PlotView(
-                plot.slot, "withered", "plant/basic/9.png", size=(150, 212),
+                plot.slot, "withered", "webgl/wither.png",
             ))
             continue
         integer(plot.mature_at)
+        frames = pest_frames(scope, plot, metadata["pest"]["frames"])
         name = plot.plant.name
         info = metadata["plants"].get(name)
         if info is None:
-            views.append(PlotView(plot.slot, "growing", "missing"))
+            views.append(PlotView(
+                plot.slot, "growing", "missing", pest_count=plot.pest_count,
+                pest_frames=frames,
+            ))
             continue
         phases = tuple(dict.fromkeys(int(p) for p in info["phase"].split(",")))
         duration = (plot.plant.growth_seconds if plot.harvest_count == 0
                     else plot.plant.regrowth_seconds)
         elapsed = max(0, now - (plot.mature_at - duration))
+        work = (elapsed * 100 if plot.growth_remaining is None else
+                duration * 100 - plot.growth_remaining)
         ripe = now >= plot.mature_at
         stage = len(phases) if ripe else sum(
-            elapsed * phases[-1] >= threshold * duration
+            work * phases[-1] >= threshold * duration * 100
             for threshold in phases
         )
         sprite = f"plant/{name}/{stage}.png"
-        size = None
         if stage == 0:
-            if info["general"]:
-                sprite = "plant/basic/0.png"
-            size = (max(1, 35 + info["offsetW"]),
-                    max(1, 58 + info["offsetH"]))
+            sprite = "webgl/seed.png"
         views.append(PlotView(
             plot.slot, "ripe" if ripe else "growing", sprite, stage,
-            (info["offsetX"], info["offsetY"]), size,
+            pest_count=plot.pest_count,
+            pest_frames=frames,
         ))
     return Scene(
-        hashlib.sha256(identity.key.encode()).hexdigest(),
-        snapshot.account, tuple(views),
+        scope, snapshot.account, tuple(views),
     )

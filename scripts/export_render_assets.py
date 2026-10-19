@@ -10,6 +10,17 @@ from zipfile import ZIP_STORED, ZipFile, ZipInfo
 from PIL import Image
 
 
+def apply_positions(root, metadata):
+    document = json.loads((
+        root / "src/farm_render/data/crop_positions.json"
+    ).read_bytes())
+    if document.get("schema") != 2:
+        raise ValueError("Unsupported crop position schema")
+    if document.get("mode") != "full_canvas_bottom_center":
+        raise ValueError("Unsupported crop placement mode")
+    metadata["placement"] = document
+
+
 def export(root):
     legacy = root / "legacy/zhenxun_plugin_farm"
     source = legacy / "resource"
@@ -19,6 +30,8 @@ def export(root):
     )]
     paths += [source / "background/expansion.png"]
     paths += [source / "background/ripe.png"]
+    paths += [source / "background/userInfo.png"]
+    paths += [source / "background/frame/frame.png"]
     paths += [source / (
         f"background/decorateIcon/decorate_{theme}_1.jpg"
     ) for theme in ("default", "spring", "summer", "autumn", "winter")]
@@ -36,19 +49,29 @@ def export(root):
         } for row in catalogue["plants"]}, "images": {},
     }
     output = BytesIO()
+    webgl_source = root / "src/farm_render/source_assets"
+    manifest = json.loads((webgl_source / "manifest.json").read_bytes())
+    metadata["pest"] = manifest["pest"]
+    entries = {path.relative_to(source).as_posix(): path for path in paths}
+    entries.update({name: webgl_source / name for name in manifest["images"]})
     with ZipFile(output, "w", compression=ZIP_STORED) as bundle:
-        for path in sorted(paths):
-            name = path.relative_to(source).as_posix()
+        for name, path in sorted(entries.items()):
             content = path.read_bytes()
             with Image.open(BytesIO(content)) as image:
                 size = image.size
             metadata["images"][name] = {
                 "size": size, "sha256": hashlib.sha256(content).hexdigest(),
             }
+            if name in manifest["images"]:
+                expected = manifest["images"][name]
+                if (list(size) != expected["size"] or
+                        metadata["images"][name]["sha256"] != expected["sha256"]):
+                    raise ValueError("Captured WebGL sprite changed")
             item = ZipInfo(name, (2020, 1, 1, 0, 0, 0))
             item.create_system = 3
             item.external_attr = 0o100644 << 16
             bundle.writestr(item, content)
+    apply_positions(root, metadata)
     return output.getvalue(), (
         json.dumps(metadata, ensure_ascii=False, sort_keys=True, indent=2)
         + "\n"

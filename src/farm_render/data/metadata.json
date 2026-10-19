@@ -46,11 +46,291 @@
         92
       ]
     },
+    "background/frame/frame.png": {
+      "sha256": "93148c78e15295b623a857ee016768531854696ef28557bb28e044e32a5ce6ac",
+      "size": [
+        230,
+        230
+      ]
+    },
     "background/ripe.png": {
       "sha256": "1c94af3e0b923defc85d200bd25538bf1ee9a2e744406266cdaf7103c1ea2cbd",
       "size": [
         92,
         92
+      ]
+    },
+    "background/userInfo.png": {
+      "sha256": "09e906c85d12491c297489ee6bcc31cd7f9e0c1527808c9c64d1783e8ae3cff3",
+      "size": [
+        580,
+        275
+      ]
+    },
+    "pest/pest1.png": {
+      "sha256": "1ad3f1bd4521ef462056b88070728853fc93de85457eac1903d8dd11dc175642",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest11.png": {
+      "sha256": "ea87a9e6ede36b36d492d641abe9c881ce57aecf130ebb5e9928276588923a52",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest13.png": {
+      "sha256": "063d58763c1c06bf5cf88e73b946dbe9d35dc52709057911247d29528bd80346",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest15.png": {
+      "sha256": "2927464be009a916862457a9dd1cf272e2face4809c8489496b8ca63f1064036",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest17.png": {
+      "sha256": "fc3a21ed236cd2200704d2971c54dcf6f90fe92ada756da6acb70b78d2c9fd82",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest19.png": {
+      "sha256": "fc3a21ed236cd2200704d2971c54dcf6f90fe92ada756da6acb70b78d2c9fd82",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest21.png": {
+      "sha256": "863e604de7a63a6bc82d240b72fc0d16964a3536557400fd7e9e4251179efc0b",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest23.png": {
+      "sha256": "fc3a21ed236cd2200704d2971c54dcf6f90fe92ada756da6acb70b78d2c9fd82",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest25.png": {
+      "sha256": "17752162847dd22b45b041072dde51d9761f24179682794c14db4fe3a21b7843",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest27.png": {
+      "sha256": "5827f8338358373507351449a8e82063c1683c3a0c4caaadf6e679c20306f376",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest29.png": {
+      "sha256": "fc3a21ed236cd2200704d2971c54dcf6f90fe92ada756da6acb70b78d2c9fd82",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest3.png": {
+      "sha256": "a88d9a45472167ad34af98e4a3e6db0bc02c3b7f3c441aef44908a97c136e37f",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest31.png": {
+      "sha256": "fc3a21ed236cd2200704d2971c54dcf6f90fe92ada756da6acb70b78d2c9fd82",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest33.png": {
+      "sha256": "eca7d05f269a417553ae38da5289caea9a8f4ba5bbc592a9477bc5dfa6a6ec1d",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest35.png": {
+      "sha256": "d26b7c64ed82266c23ac90b5a8e7fd5996b15a6a65a9d4893f0f4a01c1facb16",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest37.png": {
+      "sha256": "bb92d5687eb73be0a8bf1d9ae8c2aac5e67dcab6e5184d19e212b5931705c6b5",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest39.png": {
+      "sha256": "5827f8338358373507351449a8e82063c1683c3a0c4caaadf6e679c20306f376",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest41.png": {
+      "sha256": "fa5b7979e0d905454ddd515751e53646614680e6d29f850bdea40957bc6fbeb1",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest43.png": {
+      "sha256": "d7f1eea15102154c623d82cd148126f34e82ef40602d7cae78a6e3ee94970b93",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest45.png": {
+      "sha256": "c84fbc9a11d7e4a0e7ddff301d4dd79f75cc1882c76776fa617d189eec8f5eb4",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest47.png": {
+      "sha256": "fc3a21ed236cd2200704d2971c54dcf6f90fe92ada756da6acb70b78d2c9fd82",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest49.png": {
+      "sha256": "fc3a21ed236cd2200704d2971c54dcf6f90fe92ada756da6acb70b78d2c9fd82",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest5.png": {
+      "sha256": "5ce899cd3c42a7919dea0b43686f261a94e80af9d122337b3c01c01df920a9b0",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest51.png": {
+      "sha256": "3eeb2ef89514543ff616a51db2ad4a54da6fa67d3e573f3cda2b63d376d91d04",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest53.png": {
+      "sha256": "d823df2c2b1d9b721a2727e8e60f496aa7791942b20ff894569819b47dfe7ce4",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest55.png": {
+      "sha256": "8a78d0b046991de083334cabba06291fecc7739be501beb2caf3fcc87f5454f7",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest57.png": {
+      "sha256": "526eca9a538b3a6acd8f9ef9a358a8df98d2c6cf29667e647b6fb3df5110f5d6",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest59.png": {
+      "sha256": "8a78d0b046991de083334cabba06291fecc7739be501beb2caf3fcc87f5454f7",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest61.png": {
+      "sha256": "6603a10d50bd88bb1032fd22fe482b0c9ba433ba25967408d64e07b47a6c9b64",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest63.png": {
+      "sha256": "226c96b60648787fd457d2f968c0eee7c610444f191e6c73fdd071fa6e95bf14",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest65.png": {
+      "sha256": "8a78d0b046991de083334cabba06291fecc7739be501beb2caf3fcc87f5454f7",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest67.png": {
+      "sha256": "8a78d0b046991de083334cabba06291fecc7739be501beb2caf3fcc87f5454f7",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest69.png": {
+      "sha256": "cc1fb7b27adcdab8bbb3872ab28dab66aee832b02ed36e588f214e03d19cbc8b",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest7.png": {
+      "sha256": "e600a52be8e2aeb9ba01ad3b595fe9badb05a1987c2ec98b8d8bd6fe6fd73a65",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest71.png": {
+      "sha256": "5bd1ed7e9db82572119403fce50ff9c7276df33ad4288869aeac3fa5896652e6",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest73.png": {
+      "sha256": "d0d22707ce214b6c78b74315daa33f93c97e5c20368a002a094cd12964437726",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest75.png": {
+      "sha256": "51e1142e2f4dd489cf392b0b25d2d8c04c3801b6d149254e7b7df7c86155b5e2",
+      "size": [
+        44,
+        60
+      ]
+    },
+    "pest/pest9.png": {
+      "sha256": "cefc8172fd7f0a6137dd5c67c43ba6b165ee37faf58893ff8f37dbff2cc08d22",
+      "size": [
+        44,
+        60
       ]
     },
     "plant/ATTomato/1.png": {
@@ -4714,7 +4994,96 @@
         180,
         120
       ]
+    },
+    "webgl/seed.png": {
+      "sha256": "353ff338fd5ab3f7812e9d2d7f98df11d0de4e04af6de7f9d5aa0249d40b3609",
+      "size": [
+        69,
+        30
+      ]
+    },
+    "webgl/wither.png": {
+      "sha256": "1c87f05e0b7bd8287926351e07746bc9e36371a860afaef0e4b00c51536dc472",
+      "size": [
+        209,
+        92
+      ]
     }
+  },
+  "pest": {
+    "display_size": [
+      22,
+      30
+    ],
+    "frames": [
+      "pest/pest1.png",
+      "pest/pest3.png",
+      "pest/pest5.png",
+      "pest/pest7.png",
+      "pest/pest9.png",
+      "pest/pest11.png",
+      "pest/pest13.png",
+      "pest/pest15.png",
+      "pest/pest17.png",
+      "pest/pest19.png",
+      "pest/pest21.png",
+      "pest/pest23.png",
+      "pest/pest25.png",
+      "pest/pest27.png",
+      "pest/pest29.png",
+      "pest/pest31.png",
+      "pest/pest33.png",
+      "pest/pest35.png",
+      "pest/pest37.png",
+      "pest/pest39.png",
+      "pest/pest41.png",
+      "pest/pest43.png",
+      "pest/pest45.png",
+      "pest/pest47.png",
+      "pest/pest49.png",
+      "pest/pest51.png",
+      "pest/pest53.png",
+      "pest/pest55.png",
+      "pest/pest57.png",
+      "pest/pest59.png",
+      "pest/pest61.png",
+      "pest/pest63.png",
+      "pest/pest65.png",
+      "pest/pest67.png",
+      "pest/pest69.png",
+      "pest/pest71.png",
+      "pest/pest73.png",
+      "pest/pest75.png"
+    ],
+    "loop": true,
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "positions": [
+      [
+        -26,
+        13
+      ],
+      [
+        -5,
+        42
+      ],
+      [
+        24,
+        24
+      ]
+    ],
+    "sample_rate": 24
+  },
+  "placement": {
+    "basis": "WebGLMainSceneLandController.SetCropTexture and mainscene RectTransform",
+    "common_scale": 0.5,
+    "growth_scale": 0.75,
+    "mode": "full_canvas_bottom_center",
+    "reference_soil_height": 79.5,
+    "schema": 2,
+    "wither_down": 8
   },
   "plants": {
     "ATTomato": {

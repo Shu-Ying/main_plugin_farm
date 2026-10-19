@@ -64,6 +64,7 @@ class FarmRenderer:
         started = perf_counter()
         canvas = self._base(scene, options)
         self._plants(canvas, scene, options)
+        self._pests(canvas, scene, options)
         self._panel(canvas, scene, options, avatar)
         composed = perf_counter()
         content = canvas.encode(codec, options.quality, options.method)
@@ -123,6 +124,8 @@ class FarmRenderer:
     def _plants(self, canvas, scene, options):
         s = lambda n: self._scale(n, options)
         soil_w, soil_h = self.assets.metadata["soil_size"]
+        rules = self.assets.metadata["placement"]
+        unit = soil_h / rules["reference_soil_height"]
         first_ripe = True
         for plot in scene.plots:
             if not plot.sprite:
@@ -137,14 +140,22 @@ class FarmRenderer:
                     font=font(self.font_path, max(10, s(48))),
                 )
             else:
-                size = plot.size or metadata["size"]
+                factor = rules["common_scale"] if (
+                    plot.stage == 0 or plot.state == "withered"
+                ) else rules["growth_scale"]
+                size = [n * factor * unit for n in metadata["size"]]
                 plant = self.assets.image(
                     plot.sprite, tuple(max(1, s(n)) for n in size),
                 )
-            offset_x, offset_y = plot.offset
+            center_x = pos["x"] + soil_w / 2
+            bottom = pos["y"] + soil_h
+            if plot.stage == 0 or plot.state == "withered":
+                bottom = pos["y"] + soil_h / 2
+                if plot.state == "withered":
+                    bottom += rules["wither_down"] * unit
             xy = (
-                s(pos["x"] + soil_w / 2 + offset_x) - plant.width // 2,
-                s(pos["y"] + soil_h / 2 + offset_y) - plant.height // 2,
+                round(center_x * options.width / 3072 - plant.width / 2),
+                s(bottom) - plant.height,
             )
             canvas.paste(plant, xy)
             if plot.state == "ripe" and first_ripe:
@@ -154,19 +165,36 @@ class FarmRenderer:
                 canvas.paste(icon, (s(pos["x"] + 70), s(pos["y"] - 80)))
                 first_ripe = False
 
+    def _pests(self, canvas, scene, options):
+        s = lambda n: self._scale(n, options)
+        soil_w, soil_h = self.assets.metadata["soil_size"]
+        unit = soil_h / self.assets.metadata["placement"][
+            "reference_soil_height"
+        ]
+        config = self.assets.metadata["pest"]
+        size = tuple(max(1, s(n * unit)) for n in config["display_size"])
+        for plot in scene.plots:
+            if plot.state not in ("growing", "ripe"):
+                continue
+            pos = self.assets.metadata["positions"][plot.slot - 1]
+            for frame, (x, y) in zip(plot.pest_frames, config["positions"]):
+                image = self.assets.image(frame, size)
+                center_x = pos["x"] + soil_w / 2 + x * unit
+                center_y = pos["y"] + soil_h / 2 - y * unit
+                canvas.paste(image, (
+                    round(center_x * options.width / 3072 - image.width / 2),
+                    round(center_y * options.width / 3072 - image.height / 2),
+                ))
+
     def _avatar(self, content, size):
         if content and len(content) <= MAX_AVATAR_BYTES:
             try:
                 with Image.open(BytesIO(content)) as image:
                     if image.width * image.height > MAX_AVATAR_PIXELS:
                         raise ValueError("Avatar dimensions exceed limit")
-                    image.thumbnail(size, Image.Resampling.LANCZOS)
-                    avatar = Image.new("RGBA", size, "#cce3c1")
-                    avatar.alpha_composite(image.convert("RGBA"), (
-                        (size[0] - image.width) // 2,
-                        (size[1] - image.height) // 2,
-                    ))
-                    return avatar
+                    return image.convert("RGBA").resize(
+                        size, Image.Resampling.LANCZOS,
+                    )
             except (UnidentifiedImageError, OSError, ValueError,
                     Image.DecompressionBombError):
                 logger.warning("farm render avatar rejected; using default")
@@ -179,26 +207,44 @@ class FarmRenderer:
 
     def _panel(self, canvas, scene, options, avatar):
         s = lambda n: self._scale(n, options)
-        canvas.rectangle(
-            tuple(s(n) for n in (90, 75, 1160, 425)),
-            "#fff9e8", s(24),
+
+        def paste_asset(name, position):
+            original = self.assets.metadata["images"][name]["size"]
+            image = self.assets.image(
+                name, tuple(max(1, s(n)) for n in original),
+            )
+            canvas.paste(image, tuple(s(n) for n in position))
+
+        paste_asset("background/userInfo.png", (100, 30))
+        canvas.paste(
+            self._avatar(avatar, (max(1, s(140)), max(1, s(150)))),
+            (s(125), s(85)),
         )
-        canvas.paste(self._avatar(avatar, (s(170), s(170))), (s(125), s(125)))
-        size = max(12, s(55))
-        name = canvas.fit_text(
-            scene.account.name, self.font_path, size, s(790),
-        )
-        canvas.text((s(330), s(105)), name, self.font_path, size, "#493525")
+        paste_asset("background/frame/frame.png", (75, 44))
         account = scene.account
+        level = account.level
+        current = account.experience - 200 * level * (level + 1) // 2
+        next_total = 200 * (level + 1) * (level + 2) // 2
+        progress = min(247, max(0, current * 247 // next_total))
+        if progress:
+            canvas.rectangle(
+                tuple(s(n) for n in (292, 164, 292 + progress, 189)),
+                (171, 194, 41),
+            )
         lines = (
-            f"等级 {account.level}    经验 {account.experience}",
-            f"农场币 {account.point}    点券 {account.vip_point}",
-            f"已解锁 {len(scene.plots)}/30 块地",
+            (account.name, (300, 92), 24, (77, 35, 4), 330),
+            (f"{current} / {next_total}", (365, 164), 20,
+             (102, 120, 19), 165),
+            (str(level), (570, 158), 32, (214, 111, 1), 60),
+            (str(account.point), (330, 211), 24, (253, 253, 253), 100),
+            (str(account.vip_point), (570, 211), 24, (253, 253, 253), 40),
         )
-        for index, line in enumerate(lines):
-            size = max(10, s(43))
-            text = canvas.fit_text(line, self.font_path, size, s(790))
+        for value, position, original_size, color, width in lines:
+            size = max(1, s(original_size))
+            text = canvas.fit_text(
+                value, self.font_path, size, max(1, s(width)),
+            )
             canvas.text(
-                (s(330), s(195 + index * 65)), text,
-                self.font_path, size, "#674d34",
+                tuple(s(n) for n in position), text,
+                self.font_path, size, color,
             )

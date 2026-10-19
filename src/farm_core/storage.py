@@ -12,10 +12,26 @@ from .domain import (
     FarmError, Identity, Receipt, SchemaError, Snapshot, StorageError,
 )
 from .repository import SQLiteRepository
+from .catalogue import Catalogue
 
 LOGGER = logging.getLogger(__name__)
 APPLICATION_ID = 0x4641524D
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 3
+
+PEST_COLUMNS = {
+    "pest_count": (
+        "INTEGER NOT NULL DEFAULT 0 CHECK(pest_count BETWEEN 0 AND 3)"
+    ),
+    "pest_spawned": (
+        "INTEGER NOT NULL DEFAULT 0 CHECK(pest_spawned BETWEEN 0 AND 3)"
+    ),
+    "growth_remaining": "INTEGER CHECK(growth_remaining>=0)",
+    "growth_updated_at": "INTEGER",
+    "next_pest_at": "INTEGER",
+    "maturity_pests": (
+        "INTEGER NOT NULL DEFAULT 0 CHECK(maturity_pests BETWEEN 0 AND 3)"
+    ),
+}
 
 SCHEMA = (
     """CREATE TABLE accounts(
@@ -39,13 +55,14 @@ SCHEMA = (
     )""",
     """CREATE TABLE inventory(
         identity TEXT NOT NULL REFERENCES accounts(identity),
+        plant_id INTEGER NOT NULL CHECK(plant_id>0),
         name TEXT NOT NULL,
         seeds INTEGER NOT NULL DEFAULT 0
             CHECK(typeof(seeds)='integer' AND seeds>=0),
         crops INTEGER NOT NULL DEFAULT 0
             CHECK(typeof(crops)='integer' AND crops>=0),
         locked INTEGER NOT NULL DEFAULT 0 CHECK(locked IN (0,1)),
-        PRIMARY KEY(identity, name)
+        PRIMARY KEY(identity, plant_id)
     )""",
     """CREATE TABLE plots(
         identity TEXT NOT NULL REFERENCES accounts(identity),
@@ -55,6 +72,9 @@ SCHEMA = (
         harvest_count INTEGER NOT NULL DEFAULT 0 CHECK(harvest_count>=0),
         yield_bonus INTEGER NOT NULL DEFAULT 0,
         experience_bonus INTEGER NOT NULL DEFAULT 0,
+        """ + ",\n        ".join(
+            f"{name} {definition}" for name, definition in PEST_COLUMNS.items()
+        ) + """,
         PRIMARY KEY(identity, slot)
     )""",
     """CREATE TABLE ledger(
@@ -108,7 +128,7 @@ class SQLiteStore:
             raise StorageError("sqlite_failure") from exc
 
     @staticmethod
-    def _validate(connection):
+    def _validate(connection, expected_version=SCHEMA_VERSION):
         app_id = connection.execute("PRAGMA application_id").fetchone()[0]
         version = connection.execute("PRAGMA user_version").fetchone()[0]
         tables = {
@@ -118,20 +138,61 @@ class SQLiteStore:
         }
         expected = {"accounts", "operations", "inventory", "plots", "ledger"}
         if (
-            app_id != APPLICATION_ID or version != SCHEMA_VERSION
+            app_id != APPLICATION_ID or version != expected_version
             or tables != expected
         ):
             raise SchemaError("unsupported_database_schema")
 
-    async def initialize(self) -> None:
+    async def initialize(self, catalogue: Catalogue | None = None) -> None:
         async with self._lifecycle:
-            await self._offload(self._initialize)
+            await self._offload(lambda: self._initialize(catalogue))
             self._ready = True
 
-    def _initialize(self):
+    @staticmethod
+    def _migrate_inventory(connection, catalogue):
+        names = {}
+        for plant in catalogue:
+            names.setdefault(plant.name, set()).add(plant.plant_id)
+        for row in connection.execute(
+            "SELECT plant FROM plots WHERE plant IS NOT NULL"
+        ):
+            try:
+                plant = json.loads(row[0])
+                name, plant_id = plant["name"], plant["plant_id"]
+                if (not isinstance(name, str) or type(plant_id) is not int
+                        or plant_id < 1):
+                    raise ValueError()
+                names.setdefault(name, set()).add(plant_id)
+            except (KeyError, TypeError, ValueError) as exc:
+                raise SchemaError("invalid_plot_snapshot") from exc
+        rows = connection.execute("SELECT * FROM inventory").fetchall()
+        migrated = []
+        for row in rows:
+            ids = names.get(row["name"], set())
+            if len(ids) != 1:
+                raise SchemaError("inventory_identity_unresolved")
+            migrated.append((
+                row["identity"], next(iter(ids)), row["name"],
+                row["seeds"], row["crops"], row["locked"],
+            ))
+        statement = next(
+            sql for sql in SCHEMA if sql.startswith("CREATE TABLE inventory(")
+        )
+        connection.execute(statement.replace("inventory(", "inventory_v2(", 1))
+        connection.executemany(
+            "INSERT INTO inventory_v2 VALUES (?, ?, ?, ?, ?, ?)", migrated,
+        )
+        connection.execute("DROP TABLE inventory")
+        connection.execute("ALTER TABLE inventory_v2 RENAME TO inventory")
+        connection.execute("PRAGMA user_version=2")
+        return len(rows)
+
+    def _initialize(self, catalogue=None):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._connection() as connection:
             connection.execute("BEGIN IMMEDIATE")
+            migrated_rows = None
+            migrated_pests = False
             try:
                 app = connection.execute("PRAGMA application_id").fetchone()[0]
                 version = connection.execute(
@@ -147,10 +208,37 @@ class SQLiteStore:
                         f"PRAGMA application_id={APPLICATION_ID}"
                     )
                     connection.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
+                elif app == APPLICATION_ID and version == 1:
+                    self._validate(connection, expected_version=1)
+                    migration_catalogue = (
+                        catalogue if catalogue is not None
+                        else Catalogue.bundled()
+                    )
+                    migrated_rows = self._migrate_inventory(
+                        connection,
+                        migration_catalogue,
+                    )
+                    version = 2
+                if app == APPLICATION_ID and version == 2:
+                    self._validate(connection, expected_version=2)
+                    for name, definition in PEST_COLUMNS.items():
+                        connection.execute(
+                            f"ALTER TABLE plots ADD COLUMN {name} {definition}"
+                        )
+                    connection.execute("PRAGMA user_version=3")
+                    migrated_pests = True
                 self._validate(connection)
                 connection.commit()
+                if migrated_rows is not None:
+                    LOGGER.info(
+                        "farm schema migrated version=3 inventory_rows=%s",
+                        migrated_rows,
+                    )
+                elif migrated_pests:
+                    LOGGER.info("farm schema migrated version=3 pests=enabled")
             except BaseException:
                 connection.rollback()
+                LOGGER.warning("farm schema initialization rolled back")
                 raise
 
     async def close(self) -> None:

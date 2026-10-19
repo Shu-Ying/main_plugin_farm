@@ -3,7 +3,7 @@ name: farm-core-foundation
 language: en
 phase: verify
 status: await-user
-state_version: 26
+state_version: 36
 brief: brief.md
 document_constraints_version: 3
 shape_confirmation_hash: d1bc1489c0aa3d9a28ff7a24c62aa4bcb4e0a953955d265bcf06f802252cec36
@@ -25,10 +25,10 @@ workspace:
 loop:
   stage: await-user
   goal_cycle: 5
-  iteration: 2
+  iteration: 5
   attempt: 1
   retry_epoch: 0
-  failed_iteration_count: 0
+  failed_iteration_count: 1
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
@@ -39,21 +39,21 @@ acceptance:
     text: "A1: 旧基线 827 文件校验继续通过；新核心不导入三框架、无导入副作用， 可从安装包或源码独立运行，核心不通过路径引用 legacy。"
     result: passed
     reason:
-      text: 827文件基线正式检查通过；核心源码仅相对导入，安装及导入副作用测试通过，不依赖legacy或框架。
+      text: 正式all-offline基线校验827文件通过，独立导入/安装测试通过；源码分层无框架依赖且不经legacy运行。
       truncated: false
   - id: A2
     source: brief.md
     text: "A2: 可复现导出 202 条作物配置，名称和必要数值对应源静态数据库； 本地加载支持格式校验，坏数据明确失败，不访问网络。"
     result: passed
     reason:
-      text: 202条目录源值及导出复现、损坏目录拒绝测试通过；Catalogue本地读取且验证schema与重复对象。
+      text: 正式目录可复现校验与源202行对照、损坏输入拒绝测试通过。
       truncated: false
   - id: A3
     source: brief.md
     text: "A3: 注册立即可查询 500 农场币、0 点券、0 经验、3 块空地； 重复注册不重复赠送；不同显式作用域不串号。"
     result: passed
     reason:
-      text: repository.register在事务内发放500币和3地；重复注册与四段身份隔离正式测试通过。
+      text: 注册默认资产、三空地、重复领取和作用域隔离正式测试通过；repository.register只首次赠送。
       truncated: false
   - id: A4
     source: brief.md
@@ -61,7 +61,7 @@ acceptance:
       不留下部分写入。"
     result: passed
     reason:
-      text: 购买播种均通过同一事务调用，整数/等级/资产/空地检查明确；失败无部分写入测试通过。
+      text: 购买/播种在单事务中完成；非法整数、资源/等级不足、对象不存在和失败无部分写入正式测试通过。
       truncated: false
   - id: A5
     source: brief.md
@@ -69,7 +69,7 @@ acceptance:
       多季次数及枯萎/铲除遵守保存的规则与可注入时钟。"
     result: passed
     reason:
-      text: 收获按各地块单独计算增量、保存多季状态；成熟边界、加成排序、冻结规则与枯萎测试通过。
+      text: 成熟边界、多季、逐地加成及100+20=120正式测试通过；application.harvest只累加本次经验。
       truncated: false
   - id: A6
     source: brief.md
@@ -77,7 +77,7 @@ acceptance:
       不发生旧版模板参数缺失。"
     result: passed
     reason:
-      text: 指定和全部出售均保护锁定状态，只加本次收入；文本及结构化回执返回真实账户，回归通过。
+      text: 指定/全部出售保护锁定且收益只增加一次；正式回归覆盖真实余额和安全文本。
       truncated: false
   - id: A7
     source: brief.md
@@ -85,14 +85,14 @@ acceptance:
       不重复领取，不吞数据库故障伪装成功；重启后数据可读。"
     result: passed
     reason:
-      text: BEGIN IMMEDIATE和操作指纹/持久结果覆盖原子回滚、幂等冲突、并发及取消重放；重启/模式拒绝测试通过。
+      text: storage显式事务与幂等指纹；故障回滚、并发超卖/重复领取、重启恢复和取消重放正式检查通过。
       truncated: false
   - id: A8
     source: brief.md
     text: "A8: 提供可执行的离线测试、运行入口和使用说明，保留真实宿主、 真实库迁移及远程发布未验证的说明；文档记录已实现范围和剩余项。"
     result: passed
     reason:
-      text: 离线入口、完整56项回归及实现说明可复核；真实宿主、迁库及远程发布边界有说明。
+      text: 完整离线入口与文档存在，真实宿主/旧库迁移/远端操作边界已记录；当前用户测试不扩大历史自动验证结论。
       truncated: false
   - id: A9
     source: brief.md
@@ -100,35 +100,35 @@ acceptance:
       依赖；安装包含所需素材。"
     result: passed
     reason:
-      text: Canvas支持透明合成/复制/缩放/裁剪/文字/三格式编码；核心无Pillow运行依赖，wheel独立渲染测试通过。
+      text: canvas透明合成/裁剪/文本/三编码、wheel独立运行正式测试通过；新面板两素材离线导出并校验。
       truncated: false
   - id: A10
     source: brief.md
     text: "A10: 从一次快照绘制空地、生长、成熟、再生长、枯萎及锁定地块， 使用统一时间、旧布局和正确偏移；输出普通/高清可解码图片。"
     result: passed
     reason:
-      text: 统一快照和now生成场景，阶段按首熟/再生长锚点映射，枯萎优先并使用实际偏移；普通高清解码及边界测试通过。
+      text: 一次快照与统一now绘图、各阶段/尺寸正式测试通过；源码与旧drawUserInfo对照恢复userInfo/frame、140x150头像和信息内容，按用户选择校正底图槽位；样图目视确认无框外货币。
       truncated: false
   - id: A11
     source: brief.md
     text: "A11: 小画布从开始按目标尺寸绘制；素材和结果缓存有内存上限， 共享素材不被污染；阶段/成熟边界、账户、头像及作用域变化不复用旧图。"
     result: passed
     reason:
-      text: 底图直接为目标宽度；素材返回副本，LRU预算有界；身份、可见账户/地块阶段、头像和配置纳入键，正式缓存测试通过。
+      text: 目标尺寸绘制、LRU预算/复制保护、阶段/账户/头像/身份缓存失效正式测试通过；新增经验边界和经验变化失效覆盖本轮面板。
       truncated: false
   - id: A12
     source: brief.md
     text: "A12: 合成和编码在后台执行且限制并发，相同请求合并；取消和异常 不提前释放运行名额、不泄漏后台任务；记录耗时、尺寸和缓存状态。"
     result: passed
     reason:
-      text: RenderService整图to_thread，有限排队及并发、相同请求合并，shield取消和关闭排空；并发/取消/失败重试测试通过。
+      text: RenderService后台线程/信号量/单任务合并/取消保护/关闭排空实现与正式并发测试一致，日志记录时长尺寸缓存。
       truncated: false
   - id: A13
     source: brief.md
     text: "A13: 离线生成农场样例、对比尺寸/编码与冷暖缓存，保存测量报告和 接入文档；验证旧基线及原有核心测试，明确尚未接入真实消息平台。"
     result: passed
     reason:
-      text: 离线样例报告标注本机单次及未测上传；三格式冷暖数据、布局及文档保留，旧基线和原核心回归继续通过。
+      text: 离线样例与本机性能报告完整；恢复面板报告675素材、三编码冷暖数据，明确未测低配上传；全回归与基线通过。
       truncated: false
   - id: A14
     source: brief.md
@@ -136,7 +136,7 @@ acceptance:
       独立测试数据库与启动/关闭生命周期；缺字体时给出配置提示。"
     result: passed
     reason:
-      text: 沿用原中文指令及旧子命令，独立预览库、稳定事件哈希、完整身份、生命周期/字体/头像降级已核对；余额不足映射修正并通过无扣款新测试。
+      text: 真寻原指令、稳定事件ID、身份隔离与独立库生命周期模拟测试通过；默认FONT_PATH在适配层，显式覆盖与缺失提示有测试。
       truncated: false
   - id: A15
     source: brief.md
@@ -144,14 +144,14 @@ acceptance:
       源提交/脏工作区明确记录，相同输入可复现，构建不修改开发源码。"
     result: passed
     reason:
-      text: 构建白名单包含私有模块、素材/许可证NOTICE及来源哈希，固定ZIP元数据，不修改开发导入；复现测试通过；最终修复包校验30文件且runtime匹配源码。
+      text: 白名单构建私有模块/素材/许可证/来源哈希，固定ZIP元数据，正式可复现测试通过；最终preview.3的30文件校验且renderer与源码一致。
       truncated: false
   - id: A16
     source: brief.md
     text: "A16: 离线校验ZIP内容、导入和命令路由；安装脚本拒绝路径穿越、 哈希错误和已有目标，不覆盖旧插件或玩家数据；不自动启动真实机器人。"
     result: passed
     reason:
-      text: 校验器拒绝重复/额外/穿越/符号链接/哈希错误，先验再安装且独占创建不覆盖；正式边界测试通过。Windows临时目录实测尾点空格变体未复现逃逸。
+      text: 安装先校验、已有目标拒绝、路径穿越/哈希/符号链接等正式边界测试通过；最终安装目录与ZIP逐文件一致，不启动宿主。
       truncated: false
   - id: A17
     source: brief.md
@@ -159,7 +159,7 @@ acceptance:
       由Secrets提供且不进入产物；发布仓库收到生成内容后可独立校验。"
     result: passed
     reason:
-      text: CI默认只读/附件输出；同步需手动main触发与受保护环境Secret，脚本默认离线且固定仓库farm-preview、拒绝默认/非生成分支、无force并保护竞态；模拟/守卫通过。
+      text: 工作流触发/只读权限/矩阵/附件与专用手动发布源码核对，正式守卫通过；固定farm-preview且非force，默认离线，冲突及默认分支拒绝模拟测试通过。
       truncated: false
   - id: A18
     source: brief.md
@@ -168,15 +168,16 @@ acceptance:
       提供下载、字体/数据路径、测试命令、回退/卸载和Secrets配置说明。"
     result: passed
     reason:
-      text: Windows本机56项及隔离Pillow10.4下24项均正式通过；CI矩阵明确Windows/Linux和10.4/12.3，文档含安装/字体/数据/原指令冲突/卸载/Secrets及未验证边界。
+      text: 完整60项与Pillow10.4的28项本机正式检查通过，工作流包含Windows/Linux和10.4/12.3；说明记录字体/数据/安装/回退/Secrets及真实消息和远端运行限制。
       truncated: false
 builder_handoff:
-  candidate_id: 24c9df3f-4c07-4b34-a21a-8f2ccf9f4adb
+  candidate_id: f7644c08-b105-472c-9e92-4e28224fa080
   identity_provider: skill-coordinated
-  builder_execution_ref: skill-coordinated:builder:e3b4b544-7ef0-4d3f-bd5f-fb269d4455c2
-  iteration: 2
+  builder_execution_ref: skill-coordinated:builder:90d9bf58-287b-4ac9-9c39-e97c23b3bc86
+  iteration: 5
   summary:
-    text: 按独立验收建议修正余额不足的中文提示映射，增加无扣款回归测试；其余已确认A1-A18实现不变。此前55项/最低23项/工作流检查及独立验收通过，本轮受影响检查由Runtime重验，未执行远端或真实宿主。
+    text: 恢复旧版用户信息底图、头像框、头像尺寸及昵称/经验/等级/币种字段；用户确认按原底图修正旧坐标错位。经验口径兼容旧版、点券为真实余额。补齐两张原素材，目标尺寸LRU、一次快照与异步限流均保留。15项定向绘图测试通过，已目视核对最新样图并构建preview.3。
+      完整检查发现一处81字符行宽违规，已拆行；3项打包检查通过，运行完整正式复查。
     truncated: false
   addressed_acceptance_ids:
     - A1
@@ -261,14 +262,20 @@ builder_handoff:
         - src/farm_render/layout.py
         - src/farm_render/renderer.py
         - tests/test_render.py
-      note: 新实现对应已确认规格，定向测试和离线样例可复核。
+        - tests/test_render.py::test_legacy_panel_assets_avatar_size_and_layer_order
+        - tests/test_render.py::test_legacy_panel_fields_progress_and_level_boundaries
+        - docs/render-panel-restored-benchmark.json
+      note: 恢复原版面板素材和信息，按用户确认校正旧坐标；15项渲染定向测试与样图核对通过，完整回归交Runtime。
     - id: A11
       status: implemented-with-evidence
       evidence:
         - src/farm_render/assets.py
         - src/farm_render/renderer.py
         - tests/test_render.py
-      note: 新实现对应已确认规格，定向测试和离线样例可复核。
+        - tests/test_render.py::test_legacy_panel_assets_avatar_size_and_layer_order
+        - tests/test_render.py::test_legacy_panel_fields_progress_and_level_boundaries
+        - docs/render-panel-restored-benchmark.json
+      note: 恢复原版面板素材和信息，按用户确认校正旧坐标；15项渲染定向测试与样图核对通过，完整回归交Runtime。
     - id: A12
       status: implemented-with-evidence
       evidence:
@@ -281,7 +288,10 @@ builder_handoff:
         - scripts/render_demo.py
         - docs/10-rendering.md
         - docs/render-benchmark.json
-      note: 新实现对应已确认规格，定向测试和离线样例可复核。
+        - tests/test_render.py::test_legacy_panel_assets_avatar_size_and_layer_order
+        - tests/test_render.py::test_legacy_panel_fields_progress_and_level_boundaries
+        - docs/render-panel-restored-benchmark.json
+      note: 恢复原版面板素材和信息，按用户确认校正旧坐标；15项渲染定向测试与样图核对通过，完整回归交Runtime。
     - id: A14
       status: implemented-with-evidence
       evidence:
@@ -321,32 +331,39 @@ builder_handoff:
       note: 按用户最终选择沿用原指令并保留独立测试数据；定向检查通过，完整与最低依赖检查纳入Runtime计划。
   checks:
     - name:
-        text: insufficient-funds-message
+        text: render-panel-focused
         truncated: false
       result: passed
       note:
-        text: Observed failing test, fixed mapping, targeted test passed; balance
-          unchanged
+        text: 15 tests including original asset layering, avatar geometry, level
+          boundaries and experience cache invalidation.
+        truncated: false
+    - name:
+        text: visual-panel-and-package
+        truncated: false
+      result: passed
+      note:
+        text: Latest 1536 JPEG visually inspected; preview.3 built and package verified.
+        truncated: false
+    - name:
+        text: packaging-focused
+        truncated: false
+      result: passed
+      note:
+        text: 3 packaging tests passed after wrapping overlong renderer line; runtime
+          full first attempt failed only line-width gate.
         truncated: false
   checks_truncated: false
   known_limits:
-    - text: 真实真寻/NoneBot依赖注入与平台发图尚未实际运行；模拟宿主不是线上验证。
+    - text: 真实聊天需重启后由用户测试；不自动重启，不访问真实玩家库。
       truncated: false
-    - text: 本机Windows已测，Linux仅配置CI尚未执行。
+    - text: 菜单/网页不显示仍未解决；Linux/GitHub未实跑；旧缺图455项未补。
       truncated: false
-    - text: 工作流与跨仓库API只离线检查/模拟，未推送未运行GitHub。
-      truncated: false
-    - text: 独立预览库不迁移旧数据；同名指令测试需用户手动停用旧版。
-      truncated: false
-    - text: 默认JPEG；WebP需要用户确认消息平台能力后配置。
-      truncated: false
-    - text: 缺失455个旧阶段素材引用以占位降级；字体及历史素材发布权需部署/发布前核实。
-      truncated: false
-    - text: 本地源码dirty故产物会标记dirty，发布脚本拒绝发布dirty产物。
+    - text: 恢复旧经验分母为下一等级累计门槛，未改变数值规则。
       truncated: false
   known_limits_truncated: false
   review: null
-  submitted_at: 2026-10-15T09:52:39.181Z
+  submitted_at: 2026-10-16T02:27:25.960Z
 blockers:
   - owner: user
     reason:
@@ -356,17 +373,17 @@ blockers:
     acceptance_ids: []
     resolution_action: await-user
 verification:
-  candidate_id: 24c9df3f-4c07-4b34-a21a-8f2ccf9f4adb
+  candidate_id: f7644c08-b105-472c-9e92-4e28224fa080
   identity_provider: skill-coordinated
-  verifier_execution_ref: skill-coordinated:verifier:d68f2636-d977-4a84-bc40-0dec8d89c753
-  iteration: 2
+  verifier_execution_ref: skill-coordinated:verifier:1c253cb5-527d-407b-9273-2e206149f47d
+  iteration: 5
   attempt: 1
   assurance: skill-coordinated
   verdict: pass
   checks:
     - id: all-offline
       name:
-        text: Core render and zhenxun regression
+        text: Full offline
         truncated: false
       argv_display:
         - text: scripts/verify_foundation.py
@@ -375,10 +392,10 @@ verification:
       cwd_ref: .
       status: passed
       exit_code: 0
-      duration_ms: 22011
+      duration_ms: 24375
     - id: pillow-10-compat
       name:
-        text: Pillow10.4 render and zhenxun
+        text: Pillow floor
         truncated: false
       argv_display:
         - text: scripts/check_pillow_compat.py
@@ -391,10 +408,10 @@ verification:
       cwd_ref: .
       status: passed
       exit_code: 0
-      duration_ms: 12697
+      duration_ms: 15112
     - id: workflow-guards
       name:
-        text: Workflow YAML and boundaries
+        text: Workflows
         truncated: false
       argv_display:
         - text: scripts/check_workflows.py
@@ -409,17 +426,19 @@ verification:
       exit_code: 0
       duration_ms: 95
   summary:
-    text: 独立只读核对完整brief、三份规格和18项，审阅核心/渲染/真寻接入、白名单构建/校验/安装/固定发布边界、测试工作流与文档。当前candidate绑定Runtime的56项完整回归、Pillow10.4下24项及工作流守卫均退出码0；日志前缀658580e0与当前cedb操作绑定已核实。额外只读确认最终ZIP30文件且runtime匹配修复源码，余额不足中文提示与无扣款回归通过。图索引过期/缺覆盖已直接源码补齐，未重复完整套件、修改实现或正式文件、远端操作、安装启动宿主或代用户接受。
+    text: 独立只读核对全部A1-A18、完整brief/三份Spec、相关实现与测试及本候选Runtime绑定。复用60项完整检查、Pillow10.4下28项及工作流守卫，均退出码0；未重跑完整套件。原面板底图/头像框/头像尺寸和信息已恢复，用户授权的槽位坐标校正经源码与1536样图核验；preview.3最终ZIP30文件与当前安装目录逐文件相同，renderer匹配源码。未修改实现/正式规格、操作远端、真实玩家库或启动宿主。
     truncated: false
   risks:
-    - text: 真实真寻依赖注入、登录及平台发图未运行；Linux与GitHub工作流/跨仓库API仅配置或模拟，未宣称上线。
+    - text: 真实聊天须用户重启后验证本轮面板，未自动启动机器人；菜单/网页不显示仍待独立排查。
       truncated: false
-    - text: 沿用原指令需用户先停用旧插件；独立新库不迁移旧玩家数据。AUTO保守默认JPEG，WebP实际平台能力待用户测试。
+    - text: Linux和GitHub工作流/远端发布未实跑；455个旧作物阶段缺图仍按既定占位处理。
       truncated: false
-    - text: 旧素材455个阶段引用缺图以占位降级；公开发布前需核实素材及字体使用权；当前dirty本地产物只用于测试，发布器拒绝dirty。
+    - text: 图索引为旧generation且新文件未跟踪；本轮以直接源读取与正式Runtime检查为准。
+      truncated: false
+    - text: 经验条沿用旧版当前级经验/下级累计门槛口径，仅校正坐标；不是重新设计升级规则。
       truncated: false
   risks_truncated: false
-  completed_at: 2026-10-15T09:58:23.989Z
+  completed_at: 2026-10-16T02:31:02.032Z
 history:
   - goal_cycle: 1
     iteration: 1
@@ -503,6 +522,51 @@ history:
       text: 独立只读核对完整brief、三份规格和18项，审阅核心/渲染/真寻接入、白名单构建/校验/安装/固定发布边界、测试工作流与文档。当前candidate绑定Runtime的56项完整回归、Pillow10.4下24项及工作流守卫均退出码0；日志前缀658580e0与当前cedb操作绑定已核实。额外只读确认最终ZIP30文件且runtime匹配修复源码，余额不足中文提示与无扣款回归通过。图索引过期/缺覆盖已直接源码补齐，未重复完整套件、修改实现或正式文件、远端操作、安装启动宿主或代用户接受。
       truncated: false
     completed_at: 2026-10-15T09:58:23.989Z
+  - goal_cycle: 5
+    iteration: 2
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: 用户实际测试要求默认字体：在真寻适配层默认复用宿主字体目录，保留显式字体覆盖和缺失时清楚提示；修复预览版默认不可绘图的接入遗漏。
+      truncated: false
+    completed_at: 2026-10-16T02:06:48.036Z
+  - goal_cycle: 5
+    iteration: 3
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 独立只读验收全部A1-A18：完整brief/三spec与当前字体实现、测试、文档已核对；复用此前未改变核心/渲染/发布的正式独立验收，并核实本候选绑定Runtime三检查exit0，实际58项完整与Pillow10.4下26项通过。真寻FONT_PATH为resources/font，接入层默认选宿主字体，坏默认跳过、显式覆盖优先，共享层未引入真寻路径；安装目录runtime/commands与主源SHA256一致。图索引不覆盖新文件或metadata_changed，已读源码补齐；未重跑完整测试、未修改项目文件、未启动宿主或访问远端。
+      truncated: false
+    completed_at: 2026-10-16T02:13:06.574Z
+  - goal_cycle: 5
+    iteration: 3
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: 用户要求修复迁移遗漏：恢复旧版用户面板素材、布局与经验进度语义并保留性能优化。
+      truncated: false
+    completed_at: 2026-10-16T02:17:50.690Z
+  - goal_cycle: 5
+    iteration: 4
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: "Builder handoff Runtime checks failed: all-offline"
+      truncated: false
+    completed_at: 2026-10-16T02:26:17.238Z
+  - goal_cycle: 5
+    iteration: 5
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 独立只读核对全部A1-A18、完整brief/三份Spec、相关实现与测试及本候选Runtime绑定。复用60项完整检查、Pillow10.4下28项及工作流守卫，均退出码0；未重跑完整套件。原面板底图/头像框/头像尺寸和信息已恢复，用户授权的槽位坐标校正经源码与1536样图核验；preview.3最终ZIP30文件与当前安装目录逐文件相同，renderer匹配源码。未修改实现/正式规格、操作远端、真实玩家库或启动宿主。
+      truncated: false
+    completed_at: 2026-10-16T02:31:02.032Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null

@@ -3,6 +3,10 @@
 本文件随生成包分发；业务源码只在主仓库main_plugin_farm维护。
 生成目标为Shu-Ying/zhenxun_plugin_farm的farm-preview分支，保留main。
 
+preview.3恢复旧版信息底板和头像框、昵称、经验进度、等级及两种货币。
+按用户确认校正原素材上的字段错位，保留旧版经验计算口径；点券显示
+真实余额。仍使用目标尺寸绘制、一次快照查询及有界缓存。
+
 ## 安装前
 
 此版沿用“开通农场”“我的农场”等原指令，没有测试前缀。请先停止
@@ -31,7 +35,17 @@ Pillow>=10.4,<11，不静默升级宿主到12。NoneBot、真寻和Uninfo由
 
 ## 配置与指令
 
-在真寻使用的.env配置中文字体路径，例如Windows：
+默认优先使用真寻FONT_PATH目录下已有的中文字体，依次尝试
+HYWenHei-85W.ttf、msyh.ttf、syht.otf、syst.otf、
+AlibabaHealthFont2.0CN-85B.ttf；文件损坏会继续尝试下一个。
+宿主目录均不可用时，再尝试Windows微软雅黑/宋体或Linux常用
+Noto Sans CJK/文泉驿路径。不会下载或打包额外字体。
+
+上述默认路径仅属于真寻适配层，不作为其他机器人宿主的默认配置。
+NoneBot/AstrBot接入时分别解析各自字体资源；共享farm_render只接收
+最终文件路径，不依赖真寻FONT_PATH或固定resources/font目录。
+
+通常不必额外配置；需要覆盖默认字体时，在真寻使用的.env指定路径：
 
 ```dotenv
 FARM_PREVIEW_FONT=C:/Windows/Fonts/msyh.ttc
@@ -39,7 +53,8 @@ FARM_PREVIEW_DEPLOYMENT=zhenxun-preview
 FARM_PREVIEW_IMAGE_FORMAT=AUTO
 ```
 
-Linux请提供合法可用的中文字体。没有字体时文本交易可用，图片命令
+Linux请提供合法可用的中文字体。显式配置优先，配置错误时不会静默
+替换成其他字体。所有默认候选都不可用时，文本交易可用，图片命令
 会提示配置；不捆绑Windows字体。可选FARM_PREVIEW_DATA_DIR显式设置
 独立预览数据目录。AUTO默认JPEG以保守兼容真实平台，确认WebP支持后
 可设WEBP，也支持JPEG/PNG。

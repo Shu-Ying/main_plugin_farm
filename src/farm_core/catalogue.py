@@ -12,19 +12,29 @@ class Catalogue:
         items = tuple(plants)
         if not items or any(not isinstance(p, Plant) for p in items):
             raise FarmError("invalid_catalogue")
-        names = {plant.name: plant for plant in items}
-        if len(names) != len(items):
-            raise FarmError("duplicate_plant")
         if len({p.plant_id for p in items}) != len(items):
             raise FarmError("duplicate_plant")
-        self._plants = MappingProxyType(names)
+        self._plants = MappingProxyType({p.plant_id: p for p in items})
+        names = {}
+        for plant in items:
+            names.setdefault(plant.name, []).append(plant)
+        self._names = MappingProxyType({k: tuple(v) for k, v in names.items()})
 
     def get(self, name: str) -> Plant:
         text(name)
-        try:
-            return self._plants[name]
-        except KeyError as exc:
-            raise FarmError("unknown_plant") from exc
+        if name.startswith("#") and name[1:].isascii() and name[1:].isdigit():
+            return self.get_by_id(int(name[1:]))
+        matches = self._names.get(name, ())
+        if not matches:
+            raise FarmError("unknown_plant")
+        if len(matches) != 1:
+            raise FarmError("ambiguous_plant")
+        return matches[0]
+
+    def get_by_id(self, plant_id: int) -> Plant:
+        if type(plant_id) is not int or plant_id not in self._plants:
+            raise FarmError("unknown_plant")
+        return self._plants[plant_id]
 
     def __iter__(self):
         return iter(self._plants.values())

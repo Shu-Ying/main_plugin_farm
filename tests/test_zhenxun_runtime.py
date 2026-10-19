@@ -1,9 +1,11 @@
 import asyncio
+from dataclasses import replace
 import importlib
 import importlib.util
 from pathlib import Path
 import sys
 import tempfile
+import shutil
 from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -58,6 +60,51 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("成熟", await self.call("harvest", message="harvest"))
         self.assertTrue((self.root / "data/farm-preview.log").exists())
 
+    async def test_shop_filters_and_numbered_commands(self):
+        catalogue = self.runtime.service.catalogue
+        carrot = catalogue.get("胡萝卜")
+        self.runtime.service.catalogue = type(catalogue)([
+            carrot,
+            replace(carrot, plant_id=9001, purchasable=False, name="禁售菜"),
+            replace(carrot, plant_id=9002, enabled=False, name="停用菜"),
+            replace(carrot, plant_id=9003, crop_type=11, name="特殊道具"),
+        ])
+        shop = await self.call("shop")
+        self.assertIn("胡萝卜（#1）", shop)
+        for name in ("禁售菜", "停用菜", "特殊道具"):
+            self.assertNotIn(name, shop)
+        await self.call("register")
+        self.assertIn("已完成", await self.call("buy", "#1 1", "number"))
+        self.assertIn("不出售", await self.call("buy", "禁售菜 1", "blocked"))
+        self.assertIn("（#1）", await self.call("inventory"))
+
+    async def test_pest_command_clears_pests_and_preserves_growth(self):
+        self.assertEqual(self.module.COMMANDS["农场除虫"], "clear_pests")
+        self.assertIn("每只虫", await self.call("help"))
+        self.runtime.service.clock = lambda: 1000
+        await self.call("register")
+        await self.call("buy", "白萝卜 1", "buy")
+        await self.call("sow", "白萝卜 1", "sow")
+        self.assertIn("没有虫", await self.call("clear_pests", message="empty"))
+        duration = self.runtime.service.catalogue.get("白萝卜").growth_seconds
+        self.runtime.service.clock = lambda: 1000 + max(3600, (duration+3)//4)
+        self.assertIn("虫子1只", await self.call("inventory"))
+        first = await self.call("clear_pests", message="clear")
+        self.assertIn("除虫已完成", first)
+        self.assertEqual(first, await self.call("clear_pests", message="clear"))
+        self.assertIn("没有虫", await self.call("clear_pests", message="new"))
+
+    async def test_duplicate_name_reports_numbered_choice(self):
+        catalogue = self.runtime.service.catalogue
+        carrot = catalogue.get("胡萝卜")
+        self.runtime.service.catalogue = type(catalogue)([
+            carrot, replace(carrot, plant_id=9001),
+        ])
+        await self.call("register")
+        response = await self.call("buy", "胡萝卜 1", "ambiguous")
+        self.assertIn("同名", response)
+        self.assertIn("#编号", response)
+
     async def test_missing_message_id_and_other_identity(self):
         self.assertIn("未执行", await self.call("register", message=None))
         await self.call("register")
@@ -75,11 +122,44 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
                                   ("sow", "白萝卜 -2"),
                                   ("lock", ""), ("farm", "unknown")):
             self.assertIsInstance(await self.call(action, arguments), str)
-        other = self.module.Runtime(self.root / "without-font")
+        other = self.module.Runtime(
+            self.root / "without-font", self.root / "missing.ttf",
+        )
         await other.start()
         try:
             response = await other.execute("farm", "", **self.context)
             self.assertIn("FARM_PREVIEW_FONT", response)
+        finally:
+            await other.close()
+
+    async def test_default_font_uses_host_resources_and_skips_broken_font(self):
+        fonts = self.root / "host-fonts"
+        fonts.mkdir()
+        (fonts / "HYWenHei-85W.ttf").write_bytes(b"broken")
+        shutil.copyfile(choose_font(), fonts / "msyh.ttf")
+        other = self.module.Runtime(self.root / "default-font", font_dir=fonts)
+        await other.start()
+        try:
+            self.assertIsNotNone(other.rendering)
+            self.assertEqual(
+                other.rendering.renderer.font_path,
+                (fonts / "msyh.ttf").resolve(),
+            )
+            await other.execute("register", "", **self.context)
+            result = await other.execute("farm", "", **self.context)
+            self.assertIsInstance(result, bytes)
+        finally:
+            await other.close()
+
+    async def test_explicit_font_overrides_host_defaults(self):
+        explicit = Path(choose_font()).resolve()
+        other = self.module.Runtime(
+            self.root / "explicit-font", explicit,
+            font_dir=self.root / "not-present",
+        )
+        await other.start()
+        try:
+            self.assertEqual(other.rendering.renderer.font_path, explicit)
         finally:
             await other.close()
 
@@ -119,6 +199,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         uninfo.Uninfo = type("Uninfo", (), {})
         paths = ModuleType("zhenxun.configs.path_config")
         paths.DATA_PATH = self.root
+        paths.FONT_PATH = self.root / "fonts"
         messages = ModuleType("zhenxun.utils.message")
         sent = []
 

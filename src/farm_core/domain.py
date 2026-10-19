@@ -91,8 +91,8 @@ class Identity:
 class Plant:
     """播种时保存的不可变结算定义。"""
 
-    plant_id: int  # 旧作物目录 ID。
-    name: str  # 唯一作物名称。
+    plant_id: int  # 稳定的本地作物 ID，不得重新分配。
+    name: str  # 显示名称；同名时使用本地编号区分。
     level: int  # 购买等级门槛。
     buy: int  # 普通种子农场币价格。
     is_vip: bool  # 是否使用点券购买。
@@ -103,11 +103,17 @@ class Plant:
     growth_seconds: int  # 首次成熟所需秒数。
     crop: int  # 最多可收获季数。
     regrowth_seconds: int  # 兼容旧版的多季再生长秒数。
+    purchasable: bool = True  # 是否允许在种子商店购买。
+    enabled: bool = True  # 是否允许新购买和播种；不阻止存量结算。
+    crop_type: int = 1  # 来源条目类型；当前仅允许类型 1 种植。
 
     def __post_init__(self):
         text(self.name)
         if type(self.is_vip) is not bool:
             raise FarmError("invalid_catalogue")
+        if type(self.purchasable) is not bool or type(self.enabled) is not bool:
+            raise FarmError("invalid_catalogue")
+        integer(self.crop_type, 1)
         for name in (
             "plant_id", "growth_seconds", "crop", "regrowth_seconds",
             "harvest",
@@ -124,6 +130,10 @@ class Plant:
     def cost(self) -> int:
         return self.vip_buy if self.is_vip else self.buy
 
+    @property
+    def buyable(self) -> bool:
+        return self.enabled and self.purchasable and self.crop_type == 1
+
     @classmethod
     def from_legacy(cls, row: dict[str, Any]) -> "Plant":
         try:
@@ -134,6 +144,10 @@ class Plant:
                 integer(row[key])
             if row["isVip"] not in (0, 1):
                 raise FarmError("invalid_catalogue")
+            for key in ("isBuy", "enabled"):
+                value = row.get(key, 1)
+                if type(value) is not int or value not in (0, 1):
+                    raise FarmError("invalid_catalogue")
             if not isinstance(row["phase"], str):
                 raise FarmError("invalid_catalogue")
             parts = row["phase"].split(",")
@@ -150,6 +164,9 @@ class Plant:
                 bool(row["isVip"]), row["vipBuy"], row["experience"],
                 row["harvest"], row["price"], row["time"] * 3600,
                 row["crop"], sum(phases[1:]),
+                purchasable=bool(row.get("isBuy", 1)),
+                enabled=bool(row.get("enabled", 1)),
+                crop_type=row.get("crop_type", 1),
             )
         except (KeyError, TypeError, ValueError, OverflowError) as exc:
             raise FarmError("invalid_catalogue") from exc
@@ -177,6 +194,7 @@ class InventoryItem:
     seeds: int = 0  # 未播种种子数。
     crops: int = 0  # 已收获产物数。
     locked: bool = False  # 是否禁止出售产物。
+    plant_id: int = 0  # 稳定本地作物 ID；0 仅兼容旧快照构造。
 
 
 @dataclass(frozen=True)
@@ -189,6 +207,29 @@ class Plot:
     harvest_count: int = 0  # 当前实例已收获季数。
     yield_bonus: int = 0  # 此地块产量加成百分比。
     experience_bonus: int = 0  # 此地块经验加成百分比。
+    pest_count: int = 0  # 当前虫数，0～3；每只降低生长速度 5%。
+    pest_spawned: int = 0  # 本季已发生的生虫事件数，除虫后不重放。
+    growth_remaining: int | None = None  # 剩余生长工作量，单位为百分之一秒。
+    growth_updated_at: int | None = None  # 上次工作量结算的 UTC 整数秒。
+    next_pest_at: int | None = None  # 下一次生虫时间，最多每季三次。
+    maturity_pests: int = 0  # 成熟瞬间冻结的虫数，决定本季减产。
+
+    def __post_init__(self):
+        integer(self.pest_count, 0, 3)
+        integer(self.pest_spawned, self.pest_count, 3)
+        integer(self.maturity_pests, 0, 3)
+        for value in (self.growth_remaining, self.growth_updated_at,
+                      self.next_pest_at):
+            if value is not None:
+                integer(value)
+        if (self.growth_remaining is None) != (
+            self.growth_updated_at is None
+        ):
+            raise FarmError("invalid_growth_state")
+        if (self.growth_updated_at is not None
+                and self.next_pest_at is not None
+                and self.next_pest_at < self.growth_updated_at):
+            raise FarmError("invalid_growth_state")
 
     @property
     def withered(self) -> bool:

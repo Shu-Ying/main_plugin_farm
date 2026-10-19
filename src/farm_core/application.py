@@ -8,6 +8,7 @@ from .domain import (
     Asset, FarmError, Identity, Plot, boosted, integer, quantity, text,
 )
 from .ports import Store
+from .pests import advance_plot, start_growth
 
 
 class FarmService:
@@ -41,7 +42,11 @@ class FarmService:
 
     async def snapshot(self, identity: Identity):
         self._identity(identity)
-        return await self.store.snapshot(identity)
+        now = integer(self.clock())
+        snapshot = await self.store.snapshot(identity)
+        return replace(snapshot, plots=tuple(
+            advance_plot(plot, now) for plot in snapshot.plots
+        ))
 
     async def register(
         self, identity: Identity, name: str, operation_id: str,
@@ -64,15 +69,22 @@ class FarmService:
 
         def operation(repository, now):
             plant = self.catalogue.get(name)
+            if not plant.enabled:
+                raise FarmError("plant_disabled")
+            if plant.crop_type != 1:
+                raise FarmError("unsupported_crop_type")
+            if not plant.purchasable:
+                raise FarmError("plant_not_purchasable")
             if repository.account().level < plant.level:
                 raise FarmError("level_required")
             cost = integer(plant.cost * count)
             repository.asset(plant.asset, -cost)
-            repository.stock(name, seeds=count)
+            repository.stock(plant, seeds=count)
             return self._result(
-                repository, name=name, quantity=count, cost=cost,
+                repository, name=plant.name, plant_id=plant.plant_id,
+                quantity=count, cost=cost,
                 asset=plant.asset.value,
-                seeds=repository.item(name).seeds,
+                seeds=repository.item(plant).seeds,
             )
 
         return await self._execute(
@@ -91,7 +103,11 @@ class FarmService:
         def operation(repository, now):
             repository.account()
             plant = self.catalogue.get(name)
-            available = repository.item(name).seeds
+            if not plant.enabled:
+                raise FarmError("plant_disabled")
+            if plant.crop_type != 1:
+                raise FarmError("unsupported_crop_type")
+            available = repository.item(plant).seeds
             empty = [p for p in repository.plots() if p.plant is None]
             amount = min(available, len(empty)) if count is None else count
             if amount == 0 or amount > available:
@@ -99,15 +115,16 @@ class FarmService:
             if amount > len(empty):
                 raise FarmError("insufficient_empty_plots")
             mature_at = integer(now + plant.growth_seconds)
-            repository.stock(name, seeds=-amount)
+            repository.stock(plant, seeds=-amount)
             for plot in empty[:amount]:
-                repository.save_plot(replace(
+                repository.save_plot(start_growth(replace(
                     plot, plant=plant, mature_at=mature_at, harvest_count=0,
-                ))
+                ), now))
             return self._result(
-                repository, name=name, quantity=amount,
+                repository, name=plant.name, plant_id=plant.plant_id,
+                quantity=amount,
                 slots=[p.slot for p in empty[:amount]],
-                seeds=repository.item(name).seeds,
+                seeds=repository.item(plant).seeds,
             )
 
         return await self._execute(
@@ -121,6 +138,7 @@ class FarmService:
             harvested = []
             total_experience = 0
             for plot in repository.plots():
+                plot = advance_plot(plot, now)
                 plant = plot.plant
                 if (
                     plant is None or plot.withered or plot.mature_at is None
@@ -128,22 +146,33 @@ class FarmService:
                 ):
                     continue
                 amount = boosted(plant.harvest, plot.yield_bonus)
+                amount = amount * (100 - 5 * plot.maturity_pests) // 100
                 experience = boosted(
                     plant.experience, plot.experience_bonus,
                 )
-                repository.stock(plant.name, crops=amount)
+                repository.stock(plant, crops=amount)
                 total_experience = integer(total_experience + experience)
                 count = plot.harvest_count + 1
                 mature_at = (
                     integer(now + plant.regrowth_seconds)
                     if count < plant.crop else None
                 )
-                repository.save_plot(replace(
+                updated = replace(
                     plot, mature_at=mature_at, harvest_count=count,
-                ))
+                    pest_count=0, pest_spawned=0, growth_remaining=None,
+                    growth_updated_at=None, next_pest_at=None,
+                    maturity_pests=0,
+                )
+                repository.save_plot(
+                    start_growth(updated, now) if count < plant.crop
+                    else updated
+                )
                 harvested.append({
                     "slot": plot.slot, "name": plant.name,
+                    "plant_id": plant.plant_id,
                     "quantity": amount, "experience": experience,
+                    "pests": plot.maturity_pests,
+                    "yield_loss_percent": plot.maturity_pests * 5,
                 })
             if not harvested:
                 raise FarmError("nothing_to_harvest")
@@ -167,6 +196,9 @@ class FarmService:
             for plot in withered:
                 repository.save_plot(replace(
                     plot, plant=None, mature_at=None, harvest_count=0,
+                    pest_count=0, pest_spawned=0, growth_remaining=None,
+                    growth_updated_at=None, next_pest_at=None,
+                    maturity_pests=0,
                 ))
             return self._result(
                 repository, slots=[p.slot for p in withered],
@@ -174,6 +206,28 @@ class FarmService:
 
         return await self._execute(
             identity, operation_id, "eradicate", {}, operation,
+        )
+
+    async def clear_pests(self, identity: Identity, operation_id: str):
+        def operation(repository, now):
+            repository.account()
+            cleared = []
+            for stored in repository.plots():
+                plot = advance_plot(stored, now)
+                if plot.pest_count == 0:
+                    continue
+                cleared.append({"slot": plot.slot, "pests": plot.pest_count})
+                updated = replace(plot, pest_count=0)
+                repository.save_plot(advance_plot(updated, now))
+            if not cleared:
+                raise FarmError("nothing_to_clear")
+            return self._result(
+                repository, cleared=cleared,
+                quantity=sum(item["pests"] for item in cleared),
+            )
+
+        return await self._execute(
+            identity, operation_id, "clear_pests", {}, operation,
         )
 
     async def lock(
@@ -186,9 +240,12 @@ class FarmService:
 
         def operation(repository, now):
             repository.account()
-            self.catalogue.get(name)
-            repository.lock(name, locked)
-            return self._result(repository, name=name, locked=locked)
+            plant = self.catalogue.get(name)
+            repository.lock(plant, locked)
+            return self._result(
+                repository, name=plant.name, plant_id=plant.plant_id,
+                locked=locked,
+            )
 
         return await self._execute(
             identity, operation_id, "lock",
@@ -209,16 +266,17 @@ class FarmService:
         def operation(repository, now):
             repository.account()
             if name is not None:
-                item = repository.item(name)
+                plant = self.catalogue.get(name)
+                item = repository.item(plant)
                 if item.locked:
                     raise FarmError("plant_locked")
                 amount = item.crops if count is None else count
                 if amount <= 0 or amount > item.crops:
                     raise FarmError("insufficient_stock")
-                items = [(name, amount)]
+                items = [(plant.plant_id, amount)]
             else:
                 items = [
-                    (item.name, item.crops)
+                    (item.plant_id, item.crops)
                     for item in repository.items()
                     if not item.locked and item.crops > 0
                 ]
@@ -226,11 +284,14 @@ class FarmService:
                     raise FarmError("nothing_to_sell")
             proceeds = 0
             sold = []
-            for plant_name, amount in items:
-                plant = self.catalogue.get(plant_name)
+            for plant_id, amount in items:
+                plant = self.catalogue.get_by_id(plant_id)
                 proceeds = integer(proceeds + plant.price * amount)
-                repository.stock(plant_name, crops=-amount)
-                sold.append({"name": plant_name, "quantity": amount})
+                repository.stock(plant, crops=-amount)
+                sold.append({
+                    "name": plant.name, "plant_id": plant.plant_id,
+                    "quantity": amount,
+                })
             repository.asset(Asset.POINT, proceeds)
             return self._result(
                 repository, sold=sold, proceeds=proceeds,
