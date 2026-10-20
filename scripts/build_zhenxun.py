@@ -63,6 +63,7 @@ def build(root, output, version):
     for name, source in {
         "LICENSE": root / "LICENSE",
         "README.md": root / "docs/11-zhenxun-preview.md",
+        "images/farm-preview.png": root / "images/farm-preview.png",
         "verify_package.py": root / "scripts/verify_zhenxun.py",
         ".github/workflows/verify.yml": root / "release/zhenxun/verify.yml",
     }.items():

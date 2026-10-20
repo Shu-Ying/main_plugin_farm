@@ -25,7 +25,7 @@ class RenderOptions:
         if self.format not in ("AUTO", "WEBP", "JPEG", "PNG"):
             raise ValueError("Unsupported output format")
         if self.theme not in ("default", "spring", "summer", "autumn",
-                              "winter"):
+                              "winter", "bee"):
             raise ValueError("Unsupported theme")
 
     @classmethod

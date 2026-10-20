@@ -16,6 +16,9 @@ ENV/
 /build/
 /dist/
 /wheelhouse/
+*.whl
+pip-delete-this-directory.txt
+installed-files.txt
 *.egg-info/
 .eggs/
 *.egg
@@ -72,6 +75,8 @@ Desktop.ini
 /uploads/
 /artifacts/
 /.local/
+/.cache/
+/incoming/
 **/farm_db/
 **/farm_res/
 *.log

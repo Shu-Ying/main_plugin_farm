@@ -78,6 +78,23 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("不出售", await self.call("buy", "禁售菜 1", "blocked"))
         self.assertIn("（#1）", await self.call("inventory"))
 
+    async def test_farm_uses_calendar_theme_and_bee_is_not_a_user_option(self):
+        rendering = self.runtime.rendering
+        from unittest.mock import AsyncMock
+        rendering.my_farm = AsyncMock(return_value=SimpleNamespace(content=b"ok"))
+        for now, expected in (
+            (1767225600, "winter"), (1775001600, "spring"),
+            (1782864000, "summer"), (1790812800, "autumn"),
+        ):
+            self.runtime.service.clock = lambda: now
+            self.assertEqual(await self.call("farm"), b"ok")
+            call = rendering.my_farm.call_args
+            self.assertEqual(call.kwargs["options"].theme, expected)
+            self.assertEqual(call.kwargs["now"], now)
+        self.assertEqual(await self.call("farm", "高清"), b"ok")
+        self.assertEqual(rendering.my_farm.call_args.kwargs["options"].width, 1536)
+        self.assertIn("参数有误", await self.call("farm", "蜂巢"))
+
     async def test_pest_command_clears_pests_and_preserves_growth(self):
         self.assertEqual(self.module.COMMANDS["农场除虫"], "clear_pests")
         self.assertIn("每只虫", await self.call("help"))

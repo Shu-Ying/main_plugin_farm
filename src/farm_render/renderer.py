@@ -65,6 +65,7 @@ class FarmRenderer:
         canvas = self._base(scene, options)
         self._plants(canvas, scene, options)
         self._pests(canvas, scene, options)
+        self._decorations(canvas, options, "foreground")
         self._panel(canvas, scene, options, avatar)
         composed = perf_counter()
         content = canvas.encode(codec, options.quality, options.method)
@@ -101,6 +102,7 @@ class FarmRenderer:
             f"decorate_{options.theme}_1.jpg", size,
         )
         canvas = Canvas(background)
+        self._decorations(canvas, options, "background")
         soil_size = tuple(max(1, s(n)) for n in (
             self.assets.metadata["soil_size"]
         ))
@@ -120,6 +122,16 @@ class FarmRenderer:
                 expansion = True
         self.assets.cache.put(key, canvas.image, size[0] * size[1] * 4)
         return canvas.copy()
+
+    def _decorations(self, canvas, options, layer):
+        s = lambda n: self._scale(n, options)
+        for item in self.assets.metadata["decorations"][options.theme]:
+            if item["layer"] != layer:
+                continue
+            image = self.assets.image(
+                item["sprite"], tuple(max(1, s(n)) for n in item["size"]),
+            )
+            canvas.paste(image, tuple(s(n) for n in item["position"]))
 
     def _plants(self, canvas, scene, options):
         s = lambda n: self._scale(n, options)

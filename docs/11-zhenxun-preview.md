@@ -1,124 +1,140 @@
-# 真寻农场预览版
+<div align="center">
 
-本文件随生成包分发；业务源码只在主仓库main_plugin_farm维护。
-生成目标为Shu-Ying/zhenxun_plugin_farm的farm-preview分支，保留main。
+# 真寻农场(zhenxun_plugin_farm)
+<p align="center">
+    <a href="./LICENSE">
+        <img src="https://img.shields.io/badge/license-GPL3.0-FE7D37" alt="license">
+    </a>
+    <a href="https://www.python.org">
+        <img src="https://img.shields.io/badge/Python-3.10%2B-blue" alt="Python">
+    </a>
+    <a href="https://github.com/astral-sh/ruff">
+        <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json" alt="ruff">
+    </a>
+    <a href="https://nonebot.dev/">
+        <img src="https://img.shields.io/badge/Nonebot-2.0.0%2B-black" alt="Nonebot">
+    </a>
+    <a href="https://github.com/zhenxun-org/zhenxun_bot">
+        <img src="https://img.shields.io/badge/zhenxun-0.2.4%2B-%23ECD9D3" alt="Python">
+    </a>
+</p>
 
-preview.3恢复旧版信息底板和头像框、昵称、经验进度、等级及两种货币。
-按用户确认校正原素材上的字段错位，保留旧版经验计算口径；点券显示
-真实余额。仍使用目标尺寸绘制、一次快照查询及有界缓存。
+<p align="center">
 
-## 安装前
+[![tencent-qq](https://img.shields.io/badge/%E7%BE%A4-%E7%9C%9F%E5%AF%BB%E5%86%9C%E5%9C%BA%E6%B5%8B%E8%AF%95-%23FF99CC
+)](https://qm.qq.com/q/7hsOD4rOw2)
 
-此版沿用“开通农场”“我的农场”等原指令，没有测试前缀。请先停止
-机器人，并停用旧农场插件，避免同名指令被旧版抢先处理。仅在菜单
-禁用旧版不一定阻止其导入；建议把旧插件目录备份到插件扫描目录之外。
-安装脚本不会自动禁用、删除或覆盖旧版。
+</p>
 
-预览数据默认位于真寻DATA_PATH/farm_preview/farm-preview.sqlite3。
-不读取旧版数据库，不迁移真实玩家资产；同平台、同机器人内共享农场，
-不同机器人/平台分开。不要将预览数据路径指向旧版数据库。
+你是说可以种地对吧🤔?
 
-## 主仓库本地生成
+</div>
 
-```text
-python scripts/build_zhenxun.py --output dist/zhenxun-preview
-python scripts/verify_zhenxun.py dist/zhenxun-preview/zhenxun_plugin_farm_preview-0.1.0-preview.1.zip
-python scripts/install_zhenxun.py dist/zhenxun-preview/zhenxun_plugin_farm_preview-0.1.0-preview.1.zip --plugins-dir /path/to/zhenxun_bot/zhenxun/plugins
-```
+---
+## 目录
+- [真寻农场(zhenxun\_plugin\_farm)](#真寻农场zhenxun_plugin_farm)
+  - [目录](#目录)
+  - [农场界面](#农场界面)
+  - [如何安装](#如何安装)
+  - [使用指令](#使用指令)
+  - [更新日志(详细)：](#更新日志详细)
+  - [用户方面](#用户方面)
+  - [代码方面](#代码方面)
+  - [待办事宜 `Todo` 列表](#待办事宜-todo-列表)
+  - [关于](#关于)
+  - [致谢](#致谢)
+  - [许可证](#许可证)
+  - [上游仓库](#上游仓库)
 
-必须使用真寻的Python环境安装包内requirements.txt；该依赖约束为
-Pillow>=10.4,<11，不静默升级宿主到12。NoneBot、真寻和Uninfo由
-现有宿主提供，不把通用NoneBot适配器或AstrBot代码一起分发。
+---
 
-如果安装目录已存在，脚本会拒绝覆盖。更新前停机器人、备份插件目录，
-手动移走旧预览目录后再安装；数据目录位于插件外，不随插件删除。
+## 农场界面
 
-## 配置与指令
+![农场界面](./images/farm-preview.png)
 
-默认优先使用真寻FONT_PATH目录下已有的中文字体，依次尝试
-HYWenHei-85W.ttf、msyh.ttf、syht.otf、syst.otf、
-AlibabaHealthFont2.0CN-85B.ttf；文件损坏会继续尝试下一个。
-宿主目录均不可用时，再尝试Windows微软雅黑/宋体或Linux常用
-Noto Sans CJK/文泉驿路径。不会下载或打包额外字体。
+---
 
-上述默认路径仅属于真寻适配层，不作为其他机器人宿主的默认配置。
-NoneBot/AstrBot接入时分别解析各自字体资源；共享farm_render只接收
-最终文件路径，不依赖真寻FONT_PATH或固定resources/font目录。
+## 如何安装
 
-通常不必额外配置；需要覆盖默认字体时，在真寻使用的.env指定路径：
+方法一（推荐）：在小真寻后台的插件商店下载即可<br>
+方法二：下载源码放在小真寻`plugin`目录下
 
-```dotenv
-FARM_PREVIEW_FONT=C:/Windows/Fonts/msyh.ttc
-FARM_PREVIEW_DEPLOYMENT=zhenxun-preview
-FARM_PREVIEW_IMAGE_FORMAT=AUTO
-```
+---
 
-Linux请提供合法可用的中文字体。显式配置优先，配置错误时不会静默
-替换成其他字体。所有默认候选都不可用时，文本交易可用，图片命令
-会提示配置；不捆绑Windows字体。可选FARM_PREVIEW_DATA_DIR显式设置
-独立预览数据目录。AUTO默认JPEG以保守兼容真实平台，确认WebP支持后
-可设WEBP，也支持JPEG/PNG。
+## 使用指令
 
-测试顺序（是否需要/前缀遵循宿主COMMAND_START配置）：
+| 指令 | 描述 | Tip |
+| --- | --- | --- |
+| @小真寻 开通农场 | 首次开通农场 |  |
+| 我的农场 | 你的农场 |  |
+| 农场详述 | 农场详细信息 |  |
+| 我的农场币 | 查询农场币 |  |
+| 种子商店 [筛选关键字] [页数] or [页数] | 查看种子商店 | 当第一个参数为非整数时，会默认进入筛选状态。页数不填默认为1 |
+| 购买种子 [种子名称] [数量] | 购买种子 | 数量不填默认为1 |
+| 我的种子 | 查询仓库种子 |  |
+| 播种 [种子名称] [数量] | 播种种子 | 数量不填默认将最大可能播种 |
+| 收获 | 收获成熟作物 |  |
+| 铲除 | 铲除荒废作物 |  |
+| 我的作物 | 你的作物 |  |
+| 出售作物 [作物名称] [数量] | 从仓库里向系统售卖作物 | 不填写作物名将售卖仓库种全部作物 填作物名不填数量将指定作物全部出售 |
+| 偷菜 @美波理 | 偷别人的菜 | 每人每天只能偷5次 |
+| 购买农场币 | 将真寻金币兑换成农场币 | 兑换比例默认为1:2 手续费默认20% |
+| 更改农场名 [新的农场名] | 改名 | 农场名称无法存储特殊字符 |
+| 农场签到 | 签到 | 需要注意，该项会从服务器拉取签到数据 |
+| 土地升级 [地块ID] | 将土地升级，带来收益提升 | 如果土地升级时，土地有播种作物，那么将直接成熟 |
 
-```text
-农场帮助
-开通农场
-我的农场
-种子商店
-购买种子 白萝卜 1
-我的种子
-播种 白萝卜 1
-我的农场 高清
-农场详述
-收获
-```
+---
 
-作物未成熟时收获会明确失败，不提供管理员快进命令或加币后门。
-其他入口：铲除、我的作物、我的农场币、我的点券、作物加锁 作物、
-作物解锁 作物、出售作物 作物 数量；不带参数出售全部未锁定产物。
-也可发送“我的农场 buy-seed 白萝卜 1”等旧子命令（支持范围见帮助）。
-不实现签到、偷菜、充值、兑换、升级和旧数据迁移，不能替代旧版全部功能。
+## 更新日志[(详细)](./log/log.md)：
+用户方面
+---
+- 新增土地升级指令，快来将土地升级至红土地、黑土地、金土地吧
+- 新增查漏补缺作物资源功能，自动更新最新作物和作物资源文件
+- 定时更新签到文件、作物资源从00:30调整至04:30
+- 修正了部分土地资源错误的情况
+- 修正了部分文本信息错误的情况
 
-重复事件通过稳定消息标识幂等；无法获取消息标识时写操作拒绝。
-头像最多等待2秒，失败使用默认图；图片缓存与后台任务均有限额。
-关键日志写入数据目录farm-preview.log，同时沿用宿主日志传播配置；
-不记录真实玩家数据。
+代码方面
+---
+- 修正部分事件连接机制
+- 修正网络请求端口
 
-## GitHub工作流
+## 待办事宜 `Todo` 列表
 
-先由你提交主仓库代码后，主仓库的Zhenxun preview工作流会检查并上传
-Actions artifact。下载并解压附件，取其中插件ZIP安装；不需要令牌。
-Windows/Linux、Pillow10.4/当前支持版属于CI矩阵，不代表本机已跑Linux。
+- [x] 完善我的农场图片，例如左上角显示用户数据
+- [ ] 完善升级数据、作物数据、作物图片
+- [x] 签到功能
+- [x] 在线更新作物信息
+- [ ] 添加渔场功能
+- [ ] 增加活动、交易行功能
+- [ ] 增加交易行总行功能
+- [ ] 添加其他游戏种子素材
+- [ ] 想不到了，想到再说
 
-若还需将生成内容写入发布仓库，主仓库手动Run workflow时勾选publish，
-并配置受保护environment zhenxun-preview。该环境Secret名为
-FARM_RELEASE_TOKEN，仅授权目标仓库Contents写入；生成内容含工作流，
-相应令牌也须允许Workflows写入（GitHub App使用对应权限）。配置
-环境审批及仅允许main分支部署。不把Token填进脚本、URL或输入参数。
-脚本默认dry-run，只有--publish才访问GitHub；固定写farm-preview，
-不更新main、不force、不创建Release。第一次创建预览分支，之后普通
-提交更新。专用预览分支只放生成内容，不在那里手改业务或存储治理资料。
-已有预览分支必须带本项目来源清单；若它已成为默认分支则拒绝发布，
-并发期间分支发生变化也拒绝更新，避免覆盖其他提交。
-用ZIP安装最直接，不能假设插件管理器支持任意分支地址。
+---
 
-产物内FARM-MANIFEST.json记录版本、源提交、dirty和每文件SHA256；
-源有未提交修改会标dirty，禁止发布这种产物。本地测试允许dirty。
-哈希用于内容一致性，不是签名或来源身份保证，请使用你信任的附件。
+## 关于
 
-## 验证边界与回退
+本人毫无任何Python经验，也从未正式的、系统的、完整的去学习Python。如有看到写的不对的地方，欢迎指出，也欢迎任何人一起来开发、完善农场。
 
-本轮不会在真实机器人中安装/启动，也不会执行真实GitHub同步。真实
-登录、权限、适配器消息格式和发图需要你部署后验证，不能把离线模拟
-报告为线上成功。旧素材455个阶段引用缺图时显示问号，不会整图失败。
+素材来均源于互联网，侵权请联系我删除
 
-源码中ZIP时间、系统类型和文件权限固定；文本统一LF，以便跨平台
-复现。构建后repository目录是发布仓库根，外层插件ZIP用于本地安装；
-二者不要再叠套一层主仓库目录。
+---
 
-回退：停机器人，移走预览插件，恢复旧插件目录，再由你启动；旧版库
-没有被本版更改。保留预览数据备份，不尝试让旧版打开新SQLite schema。
+## 致谢
 
-官方依据：[Actions附件](https://docs.github.com/en/actions/tutorials/store-and-share-data)、
-[手动触发](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)。
+最后感谢以下框架/作者的提供的技术支持(排名不分先后):
+
+- [QQ农场](https://qqnc.qq.com/) * 绝大多数的素材来源 *
+- [Nonebot2](https://github.com/nonebot/nonebot2) *✨ 跨平台 Python 异步机器人框架 ✨*
+- [zhenxun_bot](https://github.com/zhenxun-org/zhenxun_bot) *最爱真寻的一集*
+- [HibiKier](https://github.com/HibiKier) *阿咪为什么是神*
+- [ATTomato](https://github.com/ATTomatoo) *流泪偷码头.jpg*
+
+## 许可证
+
+`真寻农场(zhenxun_plugin_farm)`将采用的是`GPLv3`许可证进行开源
+
+## 上游仓库
+
+- [Client](https://github.com/Shu-Ying/main_plugin_farm)

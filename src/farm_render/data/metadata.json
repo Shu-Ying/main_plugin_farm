@@ -3,12 +3,995 @@
     3072,
     1872
   ],
+  "decorations": {
+    "autumn": [
+      {
+        "basis": "prefab parent and image transforms",
+        "fallback": false,
+        "layer": "background",
+        "name": "房屋",
+        "position": [
+          1675.75,
+          261.2169213483146
+        ],
+        "size": [
+          572.14,
+          527.7830786516854
+        ],
+        "source_theme": "autumn",
+        "sprite": "background/decorateIcon/decorate_autumn_2.png"
+      },
+      {
+        "basis": "prefab geometry and inferred runtime origin",
+        "fallback": false,
+        "layer": "background",
+        "name": "矿洞",
+        "position": [
+          1385.61,
+          256.06000000000006
+        ],
+        "size": [
+          282.88,
+          282.88
+        ],
+        "source_theme": "autumn",
+        "sprite": "background/decorateIcon/decorate_autumn_3.png"
+      },
+      {
+        "basis": "prefab geometry and inferred runtime origin",
+        "fallback": false,
+        "layer": "background",
+        "name": "主题入口",
+        "position": [
+          860.44,
+          423.6792219679634
+        ],
+        "size": [
+          294.97,
+          249.07077803203663
+        ],
+        "source_theme": "autumn",
+        "sprite": "background/decorateIcon/decorate_autumn_4.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "摊位",
+        "position": [
+          514.2,
+          554.498515625
+        ],
+        "size": [
+          298.97,
+          287.29148437500004
+        ],
+        "source_theme": "autumn",
+        "sprite": "background/decorateIcon/decorate_autumn_5.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "狗窝",
+        "position": [
+          277.95,
+          763.445234375
+        ],
+        "size": [
+          305.25,
+          205.884765625
+        ],
+        "source_theme": "autumn",
+        "sprite": "background/decorateIcon/decorate_autumn_6.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "foreground",
+        "name": "码头",
+        "position": [
+          1074.51,
+          1019.67921875
+        ],
+        "size": [
+          355.42,
+          397.07078125
+        ],
+        "source_theme": "autumn",
+        "sprite": "background/decorateIcon/decorate_autumn_7.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": true,
+        "layer": "background",
+        "name": "邮箱",
+        "position": [
+          790.18,
+          576.9633333333334
+        ],
+        "size": [
+          104.54,
+          139.38666666666666
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_8.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": true,
+        "layer": "background",
+        "name": "加工坊标牌",
+        "position": [
+          2347.77,
+          756.0799999999999
+        ],
+        "size": [
+          269.7,
+          269.7
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_9.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": true,
+        "layer": "background",
+        "name": "稻草人标牌",
+        "position": [
+          1120.51,
+          300.29999999999995
+        ],
+        "size": [
+          238.34,
+          238.34
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_10.png"
+      }
+    ],
+    "bee": [
+      {
+        "basis": "prefab parent and image transforms",
+        "fallback": false,
+        "layer": "background",
+        "name": "房屋",
+        "position": [
+          1675.75,
+          158.36029213483152
+        ],
+        "size": [
+          572.14,
+          630.6397078651685
+        ],
+        "source_theme": "bee",
+        "sprite": "background/decorateIcon/decorate_bee_2.png"
+      },
+      {
+        "basis": "prefab geometry and inferred runtime origin",
+        "fallback": false,
+        "layer": "background",
+        "name": "矿洞",
+        "position": [
+          1385.61,
+          256.06000000000006
+        ],
+        "size": [
+          282.88,
+          282.88
+        ],
+        "source_theme": "bee",
+        "sprite": "background/decorateIcon/decorate_bee_3.png"
+      },
+      {
+        "basis": "prefab geometry and inferred runtime origin",
+        "fallback": false,
+        "layer": "background",
+        "name": "主题入口",
+        "position": [
+          860.44,
+          423.6792219679634
+        ],
+        "size": [
+          294.97,
+          249.07077803203663
+        ],
+        "source_theme": "bee",
+        "sprite": "background/decorateIcon/decorate_bee_4.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "摊位",
+        "position": [
+          514.2,
+          554.498515625
+        ],
+        "size": [
+          298.97,
+          287.29148437500004
+        ],
+        "source_theme": "bee",
+        "sprite": "background/decorateIcon/decorate_bee_5.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "狗窝",
+        "position": [
+          277.95,
+          763.445234375
+        ],
+        "size": [
+          305.25,
+          205.884765625
+        ],
+        "source_theme": "bee",
+        "sprite": "background/decorateIcon/decorate_bee_6.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "foreground",
+        "name": "码头",
+        "position": [
+          1074.51,
+          1019.67921875
+        ],
+        "size": [
+          355.42,
+          397.07078125
+        ],
+        "source_theme": "bee",
+        "sprite": "background/decorateIcon/decorate_bee_7.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "邮箱",
+        "position": [
+          790.18,
+          576.9633333333334
+        ],
+        "size": [
+          104.54,
+          139.38666666666666
+        ],
+        "source_theme": "bee",
+        "sprite": "background/decorateIcon/decorate_bee_8.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "加工坊标牌",
+        "position": [
+          2347.77,
+          756.0799999999999
+        ],
+        "size": [
+          269.7,
+          269.7
+        ],
+        "source_theme": "bee",
+        "sprite": "background/decorateIcon/decorate_bee_9.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": true,
+        "layer": "background",
+        "name": "稻草人标牌",
+        "position": [
+          1120.51,
+          300.29999999999995
+        ],
+        "size": [
+          238.34,
+          238.34
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_10.png"
+      }
+    ],
+    "default": [
+      {
+        "basis": "prefab parent and image transforms",
+        "fallback": false,
+        "layer": "background",
+        "name": "房屋",
+        "position": [
+          1675.75,
+          158.36029213483152
+        ],
+        "size": [
+          572.14,
+          630.6397078651685
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_2.png"
+      },
+      {
+        "basis": "prefab geometry and inferred runtime origin",
+        "fallback": false,
+        "layer": "background",
+        "name": "矿洞",
+        "position": [
+          1385.61,
+          256.06000000000006
+        ],
+        "size": [
+          282.88,
+          282.88
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_3.png"
+      },
+      {
+        "basis": "prefab geometry and inferred runtime origin",
+        "fallback": false,
+        "layer": "background",
+        "name": "主题入口",
+        "position": [
+          860.44,
+          423.6792219679634
+        ],
+        "size": [
+          294.97,
+          249.07077803203663
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_4.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "摊位",
+        "position": [
+          514.2,
+          554.498515625
+        ],
+        "size": [
+          298.97,
+          287.29148437500004
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_5.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "狗窝",
+        "position": [
+          277.95,
+          763.445234375
+        ],
+        "size": [
+          305.25,
+          205.884765625
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_6.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "foreground",
+        "name": "码头",
+        "position": [
+          1074.51,
+          1019.67921875
+        ],
+        "size": [
+          355.42,
+          397.07078125
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_7.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "邮箱",
+        "position": [
+          790.18,
+          576.9633333333334
+        ],
+        "size": [
+          104.54,
+          139.38666666666666
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_8.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "加工坊标牌",
+        "position": [
+          2347.77,
+          756.0799999999999
+        ],
+        "size": [
+          269.7,
+          269.7
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_9.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "稻草人标牌",
+        "position": [
+          1120.51,
+          300.29999999999995
+        ],
+        "size": [
+          238.34,
+          238.34
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_10.png"
+      }
+    ],
+    "spring": [
+      {
+        "basis": "prefab parent and image transforms",
+        "fallback": false,
+        "layer": "background",
+        "name": "房屋",
+        "position": [
+          1675.75,
+          158.36029213483152
+        ],
+        "size": [
+          572.14,
+          630.6397078651685
+        ],
+        "source_theme": "spring",
+        "sprite": "background/decorateIcon/decorate_spring_2.png"
+      },
+      {
+        "basis": "prefab geometry and inferred runtime origin",
+        "fallback": false,
+        "layer": "background",
+        "name": "矿洞",
+        "position": [
+          1385.61,
+          256.06000000000006
+        ],
+        "size": [
+          282.88,
+          282.88
+        ],
+        "source_theme": "spring",
+        "sprite": "background/decorateIcon/decorate_spring_3.png"
+      },
+      {
+        "basis": "prefab geometry and inferred runtime origin",
+        "fallback": false,
+        "layer": "background",
+        "name": "主题入口",
+        "position": [
+          860.44,
+          423.6792219679634
+        ],
+        "size": [
+          294.97,
+          249.07077803203663
+        ],
+        "source_theme": "spring",
+        "sprite": "background/decorateIcon/decorate_spring_4.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "摊位",
+        "position": [
+          514.2,
+          554.498515625
+        ],
+        "size": [
+          298.97,
+          287.29148437500004
+        ],
+        "source_theme": "spring",
+        "sprite": "background/decorateIcon/decorate_spring_5.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "狗窝",
+        "position": [
+          277.95,
+          763.445234375
+        ],
+        "size": [
+          305.25,
+          205.884765625
+        ],
+        "source_theme": "spring",
+        "sprite": "background/decorateIcon/decorate_spring_6.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "foreground",
+        "name": "码头",
+        "position": [
+          1074.51,
+          1019.67921875
+        ],
+        "size": [
+          355.42,
+          397.07078125
+        ],
+        "source_theme": "spring",
+        "sprite": "background/decorateIcon/decorate_spring_7.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": true,
+        "layer": "background",
+        "name": "邮箱",
+        "position": [
+          790.18,
+          576.9633333333334
+        ],
+        "size": [
+          104.54,
+          139.38666666666666
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_8.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "加工坊标牌",
+        "position": [
+          2347.77,
+          756.0799999999999
+        ],
+        "size": [
+          269.7,
+          269.7
+        ],
+        "source_theme": "spring",
+        "sprite": "background/decorateIcon/decorate_spring_9.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": true,
+        "layer": "background",
+        "name": "稻草人标牌",
+        "position": [
+          1120.51,
+          300.29999999999995
+        ],
+        "size": [
+          238.34,
+          238.34
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_10.png"
+      }
+    ],
+    "summer": [
+      {
+        "basis": "prefab parent and image transforms",
+        "fallback": false,
+        "layer": "background",
+        "name": "房屋",
+        "position": [
+          1675.75,
+          158.36029213483152
+        ],
+        "size": [
+          572.14,
+          630.6397078651685
+        ],
+        "source_theme": "summer",
+        "sprite": "background/decorateIcon/decorate_summer_2.png"
+      },
+      {
+        "basis": "prefab geometry and inferred runtime origin",
+        "fallback": false,
+        "layer": "background",
+        "name": "矿洞",
+        "position": [
+          1385.61,
+          256.06000000000006
+        ],
+        "size": [
+          282.88,
+          282.88
+        ],
+        "source_theme": "summer",
+        "sprite": "background/decorateIcon/decorate_summer_3.png"
+      },
+      {
+        "basis": "prefab geometry and inferred runtime origin",
+        "fallback": false,
+        "layer": "background",
+        "name": "主题入口",
+        "position": [
+          860.44,
+          423.6792219679634
+        ],
+        "size": [
+          294.97,
+          249.07077803203663
+        ],
+        "source_theme": "summer",
+        "sprite": "background/decorateIcon/decorate_summer_4.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "摊位",
+        "position": [
+          514.2,
+          554.498515625
+        ],
+        "size": [
+          298.97,
+          287.29148437500004
+        ],
+        "source_theme": "summer",
+        "sprite": "background/decorateIcon/decorate_summer_5.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "狗窝",
+        "position": [
+          277.95,
+          763.445234375
+        ],
+        "size": [
+          305.25,
+          205.884765625
+        ],
+        "source_theme": "summer",
+        "sprite": "background/decorateIcon/decorate_summer_6.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "foreground",
+        "name": "码头",
+        "position": [
+          1074.51,
+          1019.67921875
+        ],
+        "size": [
+          355.42,
+          397.07078125
+        ],
+        "source_theme": "summer",
+        "sprite": "background/decorateIcon/decorate_summer_7.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": true,
+        "layer": "background",
+        "name": "邮箱",
+        "position": [
+          790.18,
+          576.9633333333334
+        ],
+        "size": [
+          104.54,
+          139.38666666666666
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_8.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "加工坊标牌",
+        "position": [
+          2347.77,
+          756.0799999999999
+        ],
+        "size": [
+          269.7,
+          269.7
+        ],
+        "source_theme": "summer",
+        "sprite": "background/decorateIcon/decorate_summer_9.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": true,
+        "layer": "background",
+        "name": "稻草人标牌",
+        "position": [
+          1120.51,
+          300.29999999999995
+        ],
+        "size": [
+          238.34,
+          238.34
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_10.png"
+      }
+    ],
+    "winter": [
+      {
+        "basis": "prefab parent and image transforms",
+        "fallback": false,
+        "layer": "background",
+        "name": "房屋",
+        "position": [
+          1675.75,
+          261.2169213483146
+        ],
+        "size": [
+          572.14,
+          527.7830786516854
+        ],
+        "source_theme": "winter",
+        "sprite": "background/decorateIcon/decorate_winter_2.png"
+      },
+      {
+        "basis": "prefab geometry and inferred runtime origin",
+        "fallback": false,
+        "layer": "background",
+        "name": "矿洞",
+        "position": [
+          1385.61,
+          256.06000000000006
+        ],
+        "size": [
+          282.88,
+          282.88
+        ],
+        "source_theme": "winter",
+        "sprite": "background/decorateIcon/decorate_winter_3.png"
+      },
+      {
+        "basis": "prefab geometry and inferred runtime origin",
+        "fallback": false,
+        "layer": "background",
+        "name": "主题入口",
+        "position": [
+          860.44,
+          423.6792219679634
+        ],
+        "size": [
+          294.97,
+          249.07077803203663
+        ],
+        "source_theme": "winter",
+        "sprite": "background/decorateIcon/decorate_winter_4.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "摊位",
+        "position": [
+          514.2,
+          554.498515625
+        ],
+        "size": [
+          298.97,
+          287.29148437500004
+        ],
+        "source_theme": "winter",
+        "sprite": "background/decorateIcon/decorate_winter_5.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "狗窝",
+        "position": [
+          277.95,
+          763.445234375
+        ],
+        "size": [
+          305.25,
+          205.884765625
+        ],
+        "source_theme": "winter",
+        "sprite": "background/decorateIcon/decorate_winter_6.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "foreground",
+        "name": "码头",
+        "position": [
+          1074.51,
+          1019.67921875
+        ],
+        "size": [
+          355.42,
+          397.07078125
+        ],
+        "source_theme": "winter",
+        "sprite": "background/decorateIcon/decorate_winter_7.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "邮箱",
+        "position": [
+          790.18,
+          576.9633333333334
+        ],
+        "size": [
+          104.54,
+          139.38666666666666
+        ],
+        "source_theme": "winter",
+        "sprite": "background/decorateIcon/decorate_winter_8.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": false,
+        "layer": "background",
+        "name": "加工坊标牌",
+        "position": [
+          2347.77,
+          756.0799999999999
+        ],
+        "size": [
+          269.7,
+          269.7
+        ],
+        "source_theme": "winter",
+        "sprite": "background/decorateIcon/decorate_winter_9.png"
+      },
+      {
+        "basis": "approved screenshot inverse projection",
+        "fallback": true,
+        "layer": "background",
+        "name": "稻草人标牌",
+        "position": [
+          1120.51,
+          300.29999999999995
+        ],
+        "size": [
+          238.34,
+          238.34
+        ],
+        "source_theme": "default",
+        "sprite": "background/decorateIcon/decorate_default_10.png"
+      }
+    ]
+  },
   "images": {
     "background/decorateIcon/decorate_autumn_1.jpg": {
       "sha256": "a3346953c2caeb4587da66046eb72b26ddc3120d8a03eb6d9fac3105d4876e02",
       "size": [
         3072,
         1872
+      ]
+    },
+    "background/decorateIcon/decorate_autumn_2.png": {
+      "sha256": "188d506956cfff3e3d4e0847b227f1128deb5a9b58451a9b4726cfca4ecff148",
+      "size": [
+        890,
+        821
+      ]
+    },
+    "background/decorateIcon/decorate_autumn_3.png": {
+      "sha256": "5cf49b7475f7559c92ac8a6ab572da39c68b51aafe8106f683c05e422e5cdbc7",
+      "size": [
+        300,
+        300
+      ]
+    },
+    "background/decorateIcon/decorate_autumn_4.png": {
+      "sha256": "5bcf66b8c24b385f690a3edc7c5cdf09e585f24594a243588ac60b634e14d804",
+      "size": [
+        437,
+        369
+      ]
+    },
+    "background/decorateIcon/decorate_autumn_5.png": {
+      "sha256": "112675d95146b0ba0fe6a85ec8528e21ad4b3f786e653c512ca712f88c1c37cb",
+      "size": [
+        384,
+        369
+      ]
+    },
+    "background/decorateIcon/decorate_autumn_6.png": {
+      "sha256": "53da880a0d1733b6c358e88a153925043a1a5f613a1d19e231ef50596410f4e6",
+      "size": [
+        384,
+        259
+      ]
+    },
+    "background/decorateIcon/decorate_autumn_7.png": {
+      "sha256": "54d3e8333c5cbd828525d0a7eb6f1325783c08aa17a53b3e343801ca4637ba0f",
+      "size": [
+        384,
+        429
+      ]
+    },
+    "background/decorateIcon/decorate_bee_1.jpg": {
+      "sha256": "85b8b1135801bcbd3789c06f7d99655ee4c229506313772ffda13c59c1daeb40",
+      "size": [
+        3072,
+        1872
+      ]
+    },
+    "background/decorateIcon/decorate_bee_2.png": {
+      "sha256": "e6642aee792e67d1ac0156836e18e399cbf8eb1201843e0d4e6efbc9a054560d",
+      "size": [
+        890,
+        981
+      ]
+    },
+    "background/decorateIcon/decorate_bee_3.png": {
+      "sha256": "828237611364a567cb634f6a5384147197be8c53b3b6a1dc916a5651eea2d315",
+      "size": [
+        300,
+        300
+      ]
+    },
+    "background/decorateIcon/decorate_bee_4.png": {
+      "sha256": "eec209b03f25de33069f06a44431c60d7485321d2f36748d3d1112f34b65e890",
+      "size": [
+        437,
+        369
+      ]
+    },
+    "background/decorateIcon/decorate_bee_5.png": {
+      "sha256": "d8814b7fd81361480e53bcb5b166affeaaf9b84d7a54370921fa4e16dd527143",
+      "size": [
+        384,
+        369
+      ]
+    },
+    "background/decorateIcon/decorate_bee_6.png": {
+      "sha256": "fc4868215c771f0bb3552290c91e4e1fef26b19cb7b66d49b9411ce7cfe16992",
+      "size": [
+        384,
+        259
+      ]
+    },
+    "background/decorateIcon/decorate_bee_7.png": {
+      "sha256": "e8bcaa8daaec9e7f564c41f3150b308031691603b4910bc99e7be8b755bb6bdb",
+      "size": [
+        384,
+        429
+      ]
+    },
+    "background/decorateIcon/decorate_bee_8.png": {
+      "sha256": "da7a6a54d69cee5887fcce84e17167447aaf33e2c2213ae35c1f94e2c9f31a7e",
+      "size": [
+        150,
+        200
+      ]
+    },
+    "background/decorateIcon/decorate_bee_9.png": {
+      "sha256": "f52e3817c5af2a56ccc492635e111932d352bebc54c7bc446d199f2895a4c196",
+      "size": [
+        200,
+        200
       ]
     },
     "background/decorateIcon/decorate_default_1.jpg": {
@@ -18,11 +1001,123 @@
         1872
       ]
     },
+    "background/decorateIcon/decorate_default_10.png": {
+      "sha256": "f3cd7bb3ddcc7040da4c239a8df4b3125e26070369c99e5ea2fd6d19663c11b3",
+      "size": [
+        200,
+        200
+      ]
+    },
+    "background/decorateIcon/decorate_default_2.png": {
+      "sha256": "662a53b18cfe8b6fed270f5720eab8521d2718ed26bc254113bbabcaf4adb4d8",
+      "size": [
+        890,
+        981
+      ]
+    },
+    "background/decorateIcon/decorate_default_3.png": {
+      "sha256": "d3dfb3d1c697c150177146225237b75b675d216d4b6bbb9108ed91719a0ee5e2",
+      "size": [
+        300,
+        300
+      ]
+    },
+    "background/decorateIcon/decorate_default_4.png": {
+      "sha256": "8c9d0a225d4db217a5fd21348938abba4a27f28946de6d1adee63fade7bee322",
+      "size": [
+        437,
+        369
+      ]
+    },
+    "background/decorateIcon/decorate_default_5.png": {
+      "sha256": "b380dd97570b13b3a213424092a5a5809ee08ef3b02e324e5b16dce5053bb00f",
+      "size": [
+        384,
+        369
+      ]
+    },
+    "background/decorateIcon/decorate_default_6.png": {
+      "sha256": "209f5104156d5d1ed8a40f4dd28f270620ed38ae0cd2524bb0892bd16a48ca74",
+      "size": [
+        384,
+        259
+      ]
+    },
+    "background/decorateIcon/decorate_default_7.png": {
+      "sha256": "0d4ed91a537d4beb3059e7cb69525e996dc6b931763a5c1b9f4b052a745f8405",
+      "size": [
+        384,
+        429
+      ]
+    },
+    "background/decorateIcon/decorate_default_8.png": {
+      "sha256": "7409ae40b29be0014b1376e93ab130101e723df2d28d0f4394c0e883e7a70d53",
+      "size": [
+        150,
+        200
+      ]
+    },
+    "background/decorateIcon/decorate_default_9.png": {
+      "sha256": "86ac74284eab4d3b8c05229d303ad3e6ab426a567f4a6b22c48e94c267e7231d",
+      "size": [
+        200,
+        200
+      ]
+    },
     "background/decorateIcon/decorate_spring_1.jpg": {
       "sha256": "2278e8c410717ef5339b5343884b4b96bf446e3192b02f4ec72a526692bd0939",
       "size": [
         3072,
         1872
+      ]
+    },
+    "background/decorateIcon/decorate_spring_2.png": {
+      "sha256": "10772cdf83c0ec68007c6d940a056183d3f015759b6d03663b2ff625e528fc78",
+      "size": [
+        890,
+        981
+      ]
+    },
+    "background/decorateIcon/decorate_spring_3.png": {
+      "sha256": "2f7605b7fc05badd7d7ab9338b1ed070fc0733bb05379d0ad99f277c7a7395fd",
+      "size": [
+        300,
+        300
+      ]
+    },
+    "background/decorateIcon/decorate_spring_4.png": {
+      "sha256": "ebff83c417196ead949e9804be8cfe4aa4bb8c1f4bfe90973289a07c940057f6",
+      "size": [
+        437,
+        369
+      ]
+    },
+    "background/decorateIcon/decorate_spring_5.png": {
+      "sha256": "5932c7f0b58255cd50ced8d11b7e4fe7172c10d3a892eb94ed3b598759a4b3c3",
+      "size": [
+        384,
+        369
+      ]
+    },
+    "background/decorateIcon/decorate_spring_6.png": {
+      "sha256": "4c7e4d4699894b7dcf23300a9d7125caaa56c3bf086cd4876fe95ca13adee0cb",
+      "size": [
+        384,
+        259
+      ]
+    },
+    "background/decorateIcon/decorate_spring_7.png": {
+      "sha256": "c2a4d78505fa1b167b634eea2a092368b64742af88a613a15e04d7f26b6f3c08",
+      "size": [
+        384,
+        429
+      ]
+    },
+    "background/decorateIcon/decorate_spring_9.png": {
+      "sha256": "8217102f54988afd3904fc64c4dabbb56b6ceddc3a2cd2ed7efe5661ae95a244",
+      "size": [
+        200,
+        200
       ]
     },
     "background/decorateIcon/decorate_summer_1.jpg": {
@@ -32,11 +1127,116 @@
         1872
       ]
     },
+    "background/decorateIcon/decorate_summer_2.png": {
+      "sha256": "40abb58c9e388383669e7b3981d14441de38a237dc4920b7e943653ec69d8555",
+      "size": [
+        890,
+        981
+      ]
+    },
+    "background/decorateIcon/decorate_summer_3.png": {
+      "sha256": "b63fe43714a82a53ed611b94cf3362aae836865be6a29464190404655f47a1ba",
+      "size": [
+        300,
+        300
+      ]
+    },
+    "background/decorateIcon/decorate_summer_4.png": {
+      "sha256": "6a5bace564df8d5142e624008be6ff81004ac42375a558fbf401cda8a47f0f24",
+      "size": [
+        437,
+        369
+      ]
+    },
+    "background/decorateIcon/decorate_summer_5.png": {
+      "sha256": "4e1b89a35d4f88182ea8683aa6a227c596ed57c7f27d9431a664cdee7ca85b07",
+      "size": [
+        384,
+        369
+      ]
+    },
+    "background/decorateIcon/decorate_summer_6.png": {
+      "sha256": "0b7ebc6fde8723da8fc3e63853b384a30a52aa2168df0db13e03cdb83d8c910f",
+      "size": [
+        384,
+        259
+      ]
+    },
+    "background/decorateIcon/decorate_summer_7.png": {
+      "sha256": "02b5c95d262974959e58428f51ca4f12d8c6b32446d4f4bde32ea50cff0fbc5e",
+      "size": [
+        384,
+        429
+      ]
+    },
+    "background/decorateIcon/decorate_summer_9.png": {
+      "sha256": "5a3e0fa79d6db2931f6350a43dbc20383524115d0f64cfb96038758fc03951f1",
+      "size": [
+        200,
+        200
+      ]
+    },
     "background/decorateIcon/decorate_winter_1.jpg": {
       "sha256": "6f1cd2c0aa3be43f9ef64d9c7b8965adebd794458285ce87fbe5a401f995fc43",
       "size": [
         3072,
         1872
+      ]
+    },
+    "background/decorateIcon/decorate_winter_2.png": {
+      "sha256": "78fca463daf00da06db83ef3f43d7bea444a57043cdce39fa23e8551b90c1a5b",
+      "size": [
+        890,
+        821
+      ]
+    },
+    "background/decorateIcon/decorate_winter_3.png": {
+      "sha256": "dea09c184d23dd279d29c803678b5f17adf34fd1833f34d7df9fc8dabca3eb42",
+      "size": [
+        300,
+        300
+      ]
+    },
+    "background/decorateIcon/decorate_winter_4.png": {
+      "sha256": "e42dc3bd0d168fc386ee10bf6e07b92e3ddfd2267d01bfa63d27bd8fb04c372f",
+      "size": [
+        437,
+        369
+      ]
+    },
+    "background/decorateIcon/decorate_winter_5.png": {
+      "sha256": "c36c51e0b9f237233d10f9c921bf3a42dc960546fa08885ff5fa5ac2b261c773",
+      "size": [
+        384,
+        369
+      ]
+    },
+    "background/decorateIcon/decorate_winter_6.png": {
+      "sha256": "8de23b47a1baedbd0958fd1f957b80b9ea272623605878346d2f78117c80b849",
+      "size": [
+        384,
+        259
+      ]
+    },
+    "background/decorateIcon/decorate_winter_7.png": {
+      "sha256": "29be9ae301e0cd30f312d43cc0ad82d58dee99135183faee95331e5c981f5a60",
+      "size": [
+        384,
+        429
+      ]
+    },
+    "background/decorateIcon/decorate_winter_8.png": {
+      "sha256": "5a736ae5940ec0f3a1846b8874b6b501b7e88bc1cc59aeb98684391692c8d15c",
+      "size": [
+        150,
+        200
+      ]
+    },
+    "background/decorateIcon/decorate_winter_9.png": {
+      "sha256": "896ac8fdaa329934a56a08f8c84b3415259a3efbe34c119a2ee7993b2640e8c4",
+      "size": [
+        200,
+        200
       ]
     },
     "background/expansion.png": {

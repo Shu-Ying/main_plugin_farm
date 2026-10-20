@@ -11,6 +11,7 @@ from ._vendor.farm_core.domain import FarmError
 from ._vendor.farm_core.storage import SCHEMA_VERSION
 from ._vendor.farm_core.presentation import receipt_text, snapshot_text
 from ._vendor.farm_render import FarmRenderer, RenderOptions, RenderService
+from ._vendor.farm_render.seasons import season_for
 
 logger = logging.getLogger(__name__)
 COMMANDS = {
@@ -30,6 +31,7 @@ HELP = (
     "作物可填写名称或 #编号；同名作物请使用商店或仓库中的编号。\n"
     "每只虫使生长速度降低5%；成熟时每只虫使本季减产5%。\n"
     "成熟后除虫不能恢复本季减产；生长期间可发送：农场除虫。\n"
+    "我的农场按北京时间自动切换春夏秋冬背景；高清使用相同季节。\n"
     "本版使用独立预览数据库，不会读取旧版资产。"
 )
 ERRORS = {
@@ -182,11 +184,18 @@ class Runtime:
                     raise ValueError()
                 if not self.rendering:
                     return "请配置 FARM_PREVIEW_FONT 为可用中文字体路径。"
-                options = (RenderOptions.high(format=self.image_format)
-                           if args else RenderOptions(format=self.image_format))
+                now = self.service.clock()
+                theme = season_for(now)
+                logger.info("farm preview seasonal theme=%s", theme)
+                options = (
+                    RenderOptions.high(format=self.image_format, theme=theme)
+                    if args else RenderOptions(format=self.image_format,
+                                               theme=theme)
+                )
                 picture = await self.rendering.my_farm(
                     self.service, who, options=options, avatar=avatar,
                     supported=("JPEG",),
+                    now=now,
                 )
                 return picture.content
             if op is None:

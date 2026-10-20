@@ -10,7 +10,7 @@ from urllib.request import Request, urlopen
 from verify_zhenxun import read_package, verify_files
 
 REPOSITORY = "Shu-Ying/zhenxun_plugin_farm"
-BRANCH = "farm-preview"
+BRANCH = "main"
 
 
 def github(method, path, payload, token, allow_missing=False):

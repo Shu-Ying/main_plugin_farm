@@ -93,6 +93,19 @@ class ZhenxunPackageTests(unittest.TestCase):
         self.assertEqual(sentinel.read_text(), "preserved")
         self.assertTrue((target / "__init__.py").is_file())
 
+    def test_readme_image_is_in_repository_archive_and_manifest(self):
+        expected = (ROOT / "images/farm-preview.png").read_bytes()
+        relative = "images/farm-preview.png"
+        self.assertEqual(
+            (self.output / "repository" / relative).read_bytes(), expected,
+        )
+        manifest = verify_package(self.bundle)
+        self.assertIn(relative, manifest["files"])
+        with ZipFile(self.bundle) as archive:
+            self.assertEqual(archive.read(
+                f"zhenxun_plugin_farm_preview/{relative}",
+            ), expected)
+
     def test_tampering_extra_path_and_traversal_rejected(self):
         for name in ("../outside.txt", "C:/escape.txt", "extra.txt",
                      "..\\outside.txt"):

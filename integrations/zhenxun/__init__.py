@@ -7,7 +7,7 @@ from ._version import __version__
 from .runtime import COMMANDS, HELP
 
 __plugin_meta__ = PluginMetadata(
-    name="农场预览", description="共享农场核心的真寻预览版",
+    name="真寻农场", description="快乐的农场时光",
     usage=HELP, type="application",
     homepage="https://github.com/Shu-Ying/zhenxun_plugin_farm",
     supported_adapters={"~onebot.v11", "~qq"},

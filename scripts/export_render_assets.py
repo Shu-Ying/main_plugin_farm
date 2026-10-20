@@ -21,6 +21,41 @@ def apply_positions(root, metadata):
     metadata["placement"] = document
 
 
+def apply_decorations(root, metadata):
+    document = json.loads((
+        root / "src/farm_render/data/background_layout.json"
+    ).read_bytes())
+    if (document["schema"] != 1 or document["canvas"] != metadata["canvas"]
+            or document["anchor"] != "full_canvas_bottom_center"):
+        raise ValueError("Unsupported background layout")
+    prefix = "background/decorateIcon/"
+    layouts = {}
+    for theme in ("default", "spring", "summer", "autumn", "winter", "bee"):
+        entries = []
+        for definition in document["buildings"]:
+            default = prefix + definition["sprite"]
+            sprite = default.replace("decorate_default_", f"decorate_{theme}_")
+            source_theme = theme
+            if sprite not in metadata["images"]:
+                sprite, source_theme = default, "default"
+            image = metadata["images"][sprite]
+            x, y, w, h = definition["rect"]
+            if w <= 0 or h <= 0:
+                raise ValueError("Invalid background rectangle")
+            height = w * image["size"][1] / image["size"][0]
+            if definition["layer"] not in ("background", "foreground"):
+                raise ValueError("Invalid decoration layer")
+            entries.append({
+                "name": definition["name"], "sprite": sprite,
+                "position": [x, y + h - height], "size": [w, height],
+                "layer": definition["layer"], "source_theme": source_theme,
+                "fallback": source_theme != theme,
+                "basis": definition["basis"],
+            })
+        layouts[theme] = entries
+    metadata["decorations"] = layouts
+
+
 def export(root):
     legacy = root / "legacy/zhenxun_plugin_farm"
     source = legacy / "resource"
@@ -34,7 +69,8 @@ def export(root):
     paths += [source / "background/frame/frame.png"]
     paths += [source / (
         f"background/decorateIcon/decorate_{theme}_1.jpg"
-    ) for theme in ("default", "spring", "summer", "autumn", "winter")]
+    ) for theme in ("default", "spring", "summer", "autumn", "winter", "bee")]
+    paths += list((source / "background/decorateIcon").glob("decorate_*.png"))
     layout = json.loads((legacy / "config/soil.json").read_bytes())
     catalogue = json.loads((
         root / "src/farm_core/data/plants.json"
@@ -72,6 +108,7 @@ def export(root):
             item.external_attr = 0o100644 << 16
             bundle.writestr(item, content)
     apply_positions(root, metadata)
+    apply_decorations(root, metadata)
     return output.getvalue(), (
         json.dumps(metadata, ensure_ascii=False, sort_keys=True, indent=2)
         + "\n"
