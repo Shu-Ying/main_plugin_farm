@@ -44,7 +44,8 @@ def build(root, output):
     files = {}
     integration = root / "integrations/zhenxun"
     for name in (
-        "__init__.py", "runtime.py", "commands.py", "requirements.txt",
+        "__init__.py", "runtime.py", "commands.py", "data_paths.py",
+        "requirements.txt",
     ):
         files[name] = (integration / name).read_bytes()
     files["_vendor/__init__.py"] = b'"""Private shared farm modules."""\n'

@@ -115,32 +115,26 @@ class RenderTests(unittest.TestCase):
         changed = replace(data, account=replace(data.account, experience=200))
         self.assertFalse(self.renderer.render(self.who, changed, 0).cache_hit)
 
-    def test_legacy_panel_assets_avatar_size_and_layer_order(self):
+    def test_web_panel_avatar_uses_prefab_rect_and_frame_overlays_it(self):
         avatar = BytesIO()
         Image.new("RGB", (80, 40), "red").save(avatar, "PNG")
         scene = self.renderer.scene(self.who, snapshot(), 0)
         for width in (1024, 1536, 3072):
             options = RenderOptions(width=width)
-            s = lambda n: round(n * width / 3072)
-            actual = Canvas.new((width, s(1872)))
-            expected = Canvas.new((width, s(1872)))
-            name = "background/userInfo.png"
-            size = self.renderer.assets.metadata["images"][name]["size"]
-            expected.paste(self.renderer.assets.image(
-                name, tuple(s(n) for n in size),
-            ), (s(100), s(30)))
-            expected.paste(Image.new("RGBA", (s(140), s(150)), "red"),
-                           (s(125), s(85)))
-            name = "background/frame/frame.png"
-            size = self.renderer.assets.metadata["images"][name]["size"]
-            expected.paste(self.renderer.assets.image(
-                name, tuple(s(n) for n in size),
-            ), (s(75), s(44)))
-            with patch.object(actual, "text"), patch.object(actual, "rectangle"):
+            s = lambda n: round(n * width / 1920)
+            actual = Canvas.new((width, round(width * 1872 / 3072)))
+            with patch.object(actual, "paste", wraps=actual.paste) as paste:
                 self.renderer._panel(actual, scene, options, avatar.getvalue())
-            self.assertEqual(actual.image.tobytes(), expected.image.tobytes())
+            calls = paste.call_args_list
+            self.assertEqual(calls[1].args[0].size,
+                             (s(111.387001), s(107.707199)))
+            self.assertEqual(calls[1].args[1], (s(32.274426), s(39.761826)))
+            self.assertEqual(calls[1].args[0].getpixel((0, 0)),
+                             (255, 0, 0, 255))
+            self.assertEqual(calls[2].args[1], (s(3.093), s(8.865)))
+            self.assertEqual(calls[2].args[0].size, (s(169.75), s(169.5)))
 
-    def test_legacy_panel_fields_progress_and_level_boundaries(self):
+    def test_web_panel_fields_fit_their_prefab_rectangles(self):
         options = RenderOptions(width=3072)
         for exp, level, current, threshold in (
             (0, 0, 0, 200), (199, 0, 199, 200), (200, 1, 0, 600),
@@ -154,21 +148,46 @@ class RenderTests(unittest.TestCase):
                 canvas, "rectangle",
             ) as rectangle:
                 self.renderer._panel(canvas, scene, options, None)
-            values = [(call.args[0], call.args[1])
-                      for call in text.call_args_list]
-            self.assertEqual(values, [
-                ((300, 92), "农场"),
-                ((365, 164), f"{current} / {threshold}"),
-                ((570, 158), str(level)),
-                ((330, 211), "12580"), ((570, 211), "36"),
+            self.assertEqual([c.args[1] for c in text.call_args_list], [
+                '农场', f'{current} / {threshold}', str(level), '12580', '36',
             ])
-            progress = current * 247 // threshold
-            if progress:
-                rectangle.assert_called_once_with(
-                    (292, 164, 292 + progress, 189), (171, 194, 41),
-                )
+            from farm_render.canvas import font
+            rectangles = ((161.2451, 40.9, 298.0353, 31.2),
+                          (177.6, 89.7879, 223, 22.0242),
+                          (400.9734, 85.3627, 56, 30),
+                          (178.4624, 128.2392, 123.6104, 30),
+                          (342, 128.2392, 108, 30))
+            for call, rect in zip(text.call_args_list, rectangles):
+                position, value, path, size, _ = call.args
+                box = font(path, size).getbbox(value)
+                left, top = position[0] + box[0], position[1] + box[1]
+                self.assertGreaterEqual(left, round(rect[0] * 1.6) - 1)
+                self.assertGreaterEqual(top, round(rect[1] * 1.6) - 1)
+                self.assertLessEqual(left + box[2] - box[0],
+                                     round((rect[0] + rect[2]) * 1.6) + 1)
+                self.assertLessEqual(top + box[3] - box[1],
+                                     round((rect[1] + rect[3]) * 1.6) + 1)
+
+    def test_web_experience_fill_clips_texture_without_resizing(self):
+        options = RenderOptions(width=1536)
+        original = self.renderer.assets.image(
+            'webgl/panel/ExpProgress.png', (172, 18),
+        )
+        for exp in (0, 100, 199):
+            scene = self.renderer.scene(
+                self.who, snapshot(experience=exp), 0,
+            )
+            canvas = Canvas.new((1536, 936))
+            with patch.object(canvas, 'paste') as paste:
+                self.renderer._panel(canvas, scene, options, None)
+            calls = paste.call_args_list
+            if exp == 0:
+                self.assertEqual(len(calls), 6)
             else:
-                rectangle.assert_not_called()
+                self.assertEqual(len(calls), 7)
+                filled = exp * 172 // 200
+                self.assertEqual(calls[4].args[0].tobytes(),
+                                 original.crop((0, 0, filled, 18)).tobytes())
 
     def test_lru_budget_and_shared_image_safety(self):
         cache = ByteLRU(10)

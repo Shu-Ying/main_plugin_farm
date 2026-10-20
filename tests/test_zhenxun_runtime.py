@@ -189,10 +189,33 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(before, await self.call("inventory"))
 
+    async def test_default_directory_migration_keeps_account_and_inventory(self):
+        old = self.root / 'migration/farm_preview'
+        target = old.with_name('farm_db')
+        previous = self.module.Runtime(old, choose_font())
+        await previous.start()
+        try:
+            await previous.execute('register', '迁移农场', **self.context)
+            before = await previous.execute('inventory', '', **self.context)
+        finally:
+            await previous.close()
+        current = self.module.Runtime(
+            target, choose_font(), legacy_data_dir=old,
+        )
+        await current.start()
+        try:
+            self.assertFalse(old.exists())
+            self.assertTrue((target / 'farm-preview.sqlite3').is_file())
+            self.assertEqual(await current.execute(
+                'inventory', '', **self.context,
+            ), before)
+        finally:
+            await current.close()
+
     async def test_mock_host_load_registers_hooks_and_original_matchers(self):
         hooks = {"start":[], "close":[], "commands":{}}
         driver = SimpleNamespace(
-            config=SimpleNamespace(farm_preview_data_dir=self.root / "host"),
+            config=SimpleNamespace(),
             on_startup=hooks["start"].append,
             on_shutdown=hooks["close"].append,
         )
@@ -233,6 +256,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         )}
         with patch.dict(sys.modules, modules):
             imported = importlib.import_module(self.package + ".commands")
+            self.assertEqual(imported.runtime.data_dir, self.root / 'farm_db')
             self.assertEqual(set(hooks["commands"]), set(self.module.COMMANDS))
             self.assertEqual(len(hooks["start"]), 1)
             await hooks["start"][0]()

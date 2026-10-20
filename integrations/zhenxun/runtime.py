@@ -12,6 +12,7 @@ from ._vendor.farm_core.storage import SCHEMA_VERSION
 from ._vendor.farm_core.presentation import receipt_text, snapshot_text
 from ._vendor.farm_render import FarmRenderer, RenderOptions, RenderService
 from ._vendor.farm_render.seasons import season_for
+from .data_paths import prepare_directory
 
 logger = logging.getLogger(__name__)
 COMMANDS = {
@@ -65,8 +66,9 @@ def operation_id(bot_id, platform, user_id, message_id, action):
 
 class Runtime:
     def __init__(self, data_dir, font_path=None, deployment="zhenxun-preview",
-                 image_format="AUTO", *, font_dir=None):
+                 image_format="AUTO", *, font_dir=None, legacy_data_dir=None):
         self.data_dir = Path(data_dir).resolve()
+        self.legacy_data_dir = legacy_data_dir
         self.font_path = font_path
         self.font_dir = Path(font_dir or "resources/font")
         self.deployment = deployment
@@ -80,7 +82,7 @@ class Runtime:
     async def start(self):
         if self.started:
             return
-        self.data_dir.mkdir(parents=True, exist_ok=True)
+        migrated = prepare_directory(self.data_dir, self.legacy_data_dir)
         self.log_handler = logging.FileHandler(
             self.data_dir / "farm-preview.log", encoding="utf-8",
         )
@@ -89,6 +91,8 @@ class Runtime:
         ))
         logging.getLogger(__package__).setLevel(logging.INFO)
         logging.getLogger(__package__).addHandler(self.log_handler)
+        if migrated:
+            logger.info('farm data directory migrated farm_preview -> farm_db')
         try:
             await self.store.initialize(catalogue=self.service.catalogue)
         except Exception:

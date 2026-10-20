@@ -88,6 +88,7 @@ def export(root):
     webgl_source = root / "src/farm_render/source_assets"
     manifest = json.loads((webgl_source / "manifest.json").read_bytes())
     metadata["pest"] = manifest["pest"]
+    metadata["panel"] = manifest["panel"]
     entries = {path.relative_to(source).as_posix(): path for path in paths}
     entries.update({name: webgl_source / name for name in manifest["images"]})
     with ZipFile(output, "w", compression=ZIP_STORED) as bundle:

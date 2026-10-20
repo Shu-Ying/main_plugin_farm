@@ -25,6 +25,20 @@
       ],
       "sha256": "226c96b60648787fd457d2f968c0eee7c610444f191e6c73fdd071fa6e95bf14"
     },
+    "webgl/panel/GoldIcon.png": {
+      "size": [
+        64,
+        64
+      ],
+      "sha256": "5389afb3a3b1245e9fdc8d3a8839c8ff07a653ebf160bb8e43882a461e73ce49"
+    },
+    "webgl/panel/HeadFrame.png": {
+      "size": [
+        230,
+        230
+      ],
+      "sha256": "74e8f716f58f9055d873657eb8fbaea2170ea19365fe83299b8e32f8484b0b62"
+    },
     "pest/pest37.png": {
       "size": [
         44,
@@ -116,6 +130,13 @@
       ],
       "sha256": "1ad3f1bd4521ef462056b88070728853fc93de85457eac1903d8dd11dc175642"
     },
+    "webgl/panel/PersionInfoBG.png": {
+      "size": [
+        492,
+        236
+      ],
+      "sha256": "62971e70743418988982667625f3e6e4e61073e74610c5279919be2e71c1bd10"
+    },
     "pest/pest69.png": {
       "size": [
         44,
@@ -171,6 +192,13 @@
         60
       ],
       "sha256": "8a78d0b046991de083334cabba06291fecc7739be501beb2caf3fcc87f5454f7"
+    },
+    "webgl/panel/ExpProgress.png": {
+      "size": [
+        225,
+        23
+      ],
+      "sha256": "fcb1bdc9a568758460e005a1be58c04d8346eaedfcbc3fef59b29ad0dedcfdc0"
     },
     "pest/pest65.png": {
       "size": [
@@ -249,6 +277,13 @@
       ],
       "sha256": "353ff338fd5ab3f7812e9d2d7f98df11d0de4e04af6de7f9d5aa0249d40b3609"
     },
+    "webgl/panel/CouponIcon.png": {
+      "size": [
+        64,
+        64
+      ],
+      "sha256": "8f564bf9da5c0fbeb65a3e320cfb47d66648405f09e2309a42825c1f5404caf1"
+    },
     "pest/pest27.png": {
       "size": [
         44,
@@ -262,6 +297,13 @@
         60
       ],
       "sha256": "fc3a21ed236cd2200704d2971c54dcf6f90fe92ada756da6acb70b78d2c9fd82"
+    },
+    "webgl/panel/ExpBar.png": {
+      "size": [
+        223,
+        30
+      ],
+      "sha256": "efb13c2dcb1ecd49689ed561d3f816312738f84887e01496385914e86dcf87d5"
     },
     "pest/pest61.png": {
       "size": [
@@ -284,6 +326,159 @@
       ],
       "sha256": "5bd1ed7e9db82572119403fce50ff9c7276df33ad4288869aeac3fa5896652e6"
     }
+  },
+  "panel": {
+    "reference_canvas": [
+      1920,
+      1080
+    ],
+    "source_prefab": "mainscene#WebGLPersionInfo",
+    "anchor": "top_left",
+    "sprites": [
+      {
+        "name": "PersionInfoBG",
+        "sprite": "webgl/panel/PersionInfoBG.png",
+        "rect": [
+          0.0,
+          0.0,
+          492.0,
+          236.0
+        ]
+      },
+      {
+        "name": "HeadFrame",
+        "sprite": "webgl/panel/HeadFrame.png",
+        "rect": [
+          3.092998504638672,
+          8.865001678466797,
+          169.75,
+          169.5
+        ]
+      },
+      {
+        "name": "ExpBar",
+        "sprite": "webgl/panel/ExpBar.png",
+        "rect": [
+          177.60000610351562,
+          85.89997100830078,
+          223.0,
+          30.0
+        ]
+      },
+      {
+        "name": "ExpProgress",
+        "sprite": "webgl/panel/ExpProgress.png",
+        "rect": [
+          179.90000915527344,
+          89.89997100830078,
+          215.0,
+          22.0
+        ]
+      },
+      {
+        "name": "GoldIcon",
+        "sprite": "webgl/panel/GoldIcon.png",
+        "rect": [
+          146.5999984741211,
+          128.8000030517578,
+          30.0,
+          30.0
+        ]
+      },
+      {
+        "name": "CouponIcon",
+        "sprite": "webgl/panel/CouponIcon.png",
+        "rect": [
+          310.5,
+          128.8000030517578,
+          30.0,
+          30.0
+        ]
+      }
+    ],
+    "avatar": [
+      32.2744255065918,
+      39.76182556152344,
+      111.38700103759766,
+      107.70719909667969
+    ],
+    "fields": [
+      {
+        "field": "name",
+        "rect": [
+          161.24510192871094,
+          40.90002250671387,
+          298.0353088378906,
+          31.200000762939453
+        ],
+        "alignment": 3,
+        "color": [
+          74,
+          31,
+          0
+        ]
+      },
+      {
+        "field": "experience",
+        "rect": [
+          177.60003662109375,
+          89.78792595863342,
+          223.0,
+          22.024199962615967
+        ],
+        "alignment": 4,
+        "color": [
+          91,
+          110,
+          3
+        ]
+      },
+      {
+        "field": "level",
+        "rect": [
+          400.9734191894531,
+          85.36273193359375,
+          56.0,
+          30.0
+        ],
+        "alignment": 4,
+        "color": [
+          216,
+          112,
+          0
+        ]
+      },
+      {
+        "field": "point",
+        "rect": [
+          178.46239471435547,
+          128.23919677734375,
+          123.61039733886719,
+          30.0
+        ],
+        "alignment": 3,
+        "color": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "field": "vip_point",
+        "rect": [
+          342.0,
+          128.23919677734375,
+          108.0,
+          30.0
+        ],
+        "alignment": 3,
+        "color": [
+          255,
+          255,
+          255
+        ]
+      }
+    ]
   },
   "pest": {
     "frames": [
