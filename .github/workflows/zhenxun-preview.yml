@@ -74,7 +74,8 @@ jobs:
 
   sync-preview:
     if: >-
-      github.event_name == 'workflow_dispatch' && inputs.publish &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && inputs.publish)) &&
       github.ref == 'refs/heads/main' &&
       github.repository == 'Shu-Ying/main_plugin_farm'
     needs: [test, build]

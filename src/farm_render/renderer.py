@@ -224,7 +224,7 @@ class FarmRenderer:
         account = scene.account
         level = account.level
         current = account.experience - 200 * level * (level + 1) // 2
-        next_total = 200 * (level + 1) * (level + 2) // 2
+        next_total = 200 * (level + 1)
         for entry in layout['sprites']:
             x, y, w, h = entry['rect']
             image = self.assets.image(

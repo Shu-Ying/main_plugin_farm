@@ -137,8 +137,8 @@ class RenderTests(unittest.TestCase):
     def test_web_panel_fields_fit_their_prefab_rectangles(self):
         options = RenderOptions(width=3072)
         for exp, level, current, threshold in (
-            (0, 0, 0, 200), (199, 0, 199, 200), (200, 1, 0, 600),
-            (599, 1, 399, 600), (600, 2, 0, 1200), (3420, 5, 420, 4200),
+            (0, 0, 0, 200), (199, 0, 199, 200), (200, 1, 0, 400),
+            (599, 1, 399, 400), (600, 2, 0, 600), (3420, 5, 420, 1200),
         ):
             data = snapshot(name="农场", point=12580, vip_point=36,
                             experience=exp)
@@ -173,7 +173,10 @@ class RenderTests(unittest.TestCase):
         original = self.renderer.assets.image(
             'webgl/panel/ExpProgress.png', (172, 18),
         )
-        for exp in (0, 100, 199):
+        for exp, current, required in (
+            (0, 0, 200), (100, 100, 200), (199, 199, 200),
+            (599, 399, 400), (1199, 599, 600),
+        ):
             scene = self.renderer.scene(
                 self.who, snapshot(experience=exp), 0,
             )
@@ -185,7 +188,7 @@ class RenderTests(unittest.TestCase):
                 self.assertEqual(len(calls), 6)
             else:
                 self.assertEqual(len(calls), 7)
-                filled = exp * 172 // 200
+                filled = current * 172 // required
                 self.assertEqual(calls[4].args[0].tobytes(),
                                  original.crop((0, 0, filled, 18)).tobytes())
 

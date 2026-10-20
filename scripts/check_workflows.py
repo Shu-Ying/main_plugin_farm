@@ -30,9 +30,16 @@ def main():
     if inputs["publish"]["default"] != "false":
         raise ValueError("Publish must be opt-in")
     sync = source["jobs"]["sync-preview"]
+    expected_condition = (
+        "(github.event_name == 'push' || "
+        "(github.event_name == 'workflow_dispatch' && inputs.publish)) && "
+        "github.ref == 'refs/heads/main' && "
+        "github.repository == 'Shu-Ying/main_plugin_farm'"
+    )
     if (sync["environment"] != "zhenxun-preview"
-            or "refs/heads/main" not in sync["if"]
-            or "workflow_dispatch" not in sync["if"]
+            or " ".join(sync["if"].split()) != expected_condition
+            or trigger["push"]["branches"] != ["main"]
+            or source["jobs"]["build"]["needs"] != "test"
             or sync["needs"] != ["test", "build"]):
         raise ValueError("Publish boundary differs")
     if generated["permissions"] != {"contents":"read"}:

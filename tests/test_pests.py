@@ -118,14 +118,41 @@ class PestTests(unittest.IsolatedAsyncioTestCase):
                 await self.service.clear_pests(self.who, "failed-clear")
         self.assertEqual(await self.store.snapshot(self.who), before)
 
-    async def test_empty_clear_and_ripe_clear_reward_no_assets(self):
+    async def test_empty_clear_has_no_reward_and_clear_awards_per_pest(self):
         with self.assertRaisesRegex(FarmError, "nothing_to_clear"):
             await self.service.clear_pests(self.who, "empty-clear")
         self.now = 4600
         before = await self.service.snapshot(self.who)
         await self.service.clear_pests(self.who, "clear")
         after = await self.service.snapshot(self.who)
-        self.assertEqual(before.account, after.account)
+        self.assertEqual(after.account.experience, before.account.experience+1)
+        self.assertEqual(after.account.point, before.account.point)
+        self.assertEqual(after.account.vip_point, before.account.vip_point)
+
+    async def test_multi_plot_pest_rewards_replay_and_transaction_rollback(self):
+        await self.service.buy(self.who, '虫害测试菜', 1, 'buy-second')
+        await self.service.sow(self.who, '虫害测试菜', 1, 'sow-second')
+        self.now = 11800
+        before = await self.store.snapshot(self.who)
+        ledger = await self.store.ledger(self.who)
+        with patch.object(SQLiteRepository, 'asset',
+                          side_effect=RuntimeError('reward failure')):
+            with self.assertRaises(RuntimeError):
+                await self.service.clear_pests(self.who, 'clear-six')
+        self.assertEqual(await self.store.snapshot(self.who), before)
+        self.assertEqual(await self.store.ledger(self.who), ledger)
+        receipts = await asyncio.gather(*(
+            self.service.clear_pests(self.who, 'clear-six') for _ in range(3)
+        ))
+        self.assertTrue(all(r == receipts[0] for r in receipts))
+        self.assertEqual(receipts[0].data['quantity'], 6)
+        self.assertEqual(receipts[0].data['experience'], 6)
+        after = await self.service.snapshot(self.who)
+        self.assertEqual(after.account.experience, before.account.experience+6)
+        with self.assertRaisesRegex(FarmError, 'nothing_to_clear'):
+            await self.service.clear_pests(self.who, 'empty-after')
+        self.assertEqual((await self.service.snapshot(self.who)).account,
+                         after.account)
 
     async def test_projection_is_independent_of_query_frequency(self):
         initial = (await self.store.snapshot(self.who)).plots[0]

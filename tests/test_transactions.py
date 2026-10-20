@@ -86,7 +86,7 @@ class TransactionTests(unittest.IsolatedAsyncioTestCase):
         sale = await self.service.sell(self.identity, None, None, "sell")
         self.assertEqual(sale.data["proceeds"], 20)
         self.assertEqual(sale.data["account"]["point"], 510)
-        self.assertEqual(sale.data["account"]["experience"], 20)
+        self.assertEqual(sale.data["account"]["experience"], 22)
         snapshot = await self.service.snapshot(self.identity)
         self.assertEqual(snapshot.inventory[0].seeds, 0)
         self.assertEqual(snapshot.inventory[0].crops, 0)
@@ -106,7 +106,7 @@ class TransactionTests(unittest.IsolatedAsyncioTestCase):
         await self.mature_radish()
         self.assertEqual(
             (await self.service.snapshot(self.identity)).account.experience,
-            120,
+            122,
         )
         await self.seed("balance-100", lambda repo: (
             repo.asset(Asset.POINT, -390) or {}
@@ -185,7 +185,7 @@ class TransactionTests(unittest.IsolatedAsyncioTestCase):
         snapshot = await self.service.snapshot(self.identity)
         self.assertTrue(snapshot.plots[0].withered)
         self.assertEqual(snapshot.inventory[0].crops, 6)
-        self.assertEqual(snapshot.account.experience, 60)
+        self.assertEqual(snapshot.account.experience, 62)
         with self.assertRaisesRegex(FarmError, "nothing_to_harvest"):
             await self.service.harvest(self.identity, "third")
 
@@ -338,7 +338,62 @@ class TransactionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sum(not isinstance(r, Exception) for r in results), 1)
         snapshot = await self.service.snapshot(self.identity)
         self.assertEqual(snapshot.inventory[0].crops, 2)
-        self.assertEqual(snapshot.account.experience, 20)
+        self.assertEqual(snapshot.account.experience, 22)
+
+    async def test_sowing_awards_two_per_plot_and_replay_once(self):
+        await self.service.buy(self.identity, '萝卜', 3, 'buy')
+        first = await self.service.sow(self.identity, '萝卜', 2, 'sow-two')
+        self.assertEqual(first.data['experience'], 4)
+        self.assertEqual(first.data['account']['experience'], 4)
+        self.assertIn('本次经验：+4', receipt_text(first))
+        repeated = await asyncio.gather(*(
+            self.service.sow(self.identity, '萝卜', 2, 'sow-two')
+            for _ in range(4)
+        ))
+        self.assertTrue(all(result == first for result in repeated))
+        await self.service.sow(self.identity, '萝卜', None, 'sow-rest')
+        self.assertEqual(
+            (await self.service.snapshot(self.identity)).account.experience, 6,
+        )
+
+    async def test_eradication_rewards_each_plot_once_and_rolls_back(self):
+        await self.mature_radish(count=2)
+        before = await self.service.snapshot(self.identity)
+        ledger = await self.store.ledger(self.identity)
+        with patch.object(SQLiteRepository, 'asset',
+                          side_effect=sqlite3.OperationalError('injected')):
+            with self.assertRaises(StorageError):
+                await self.service.eradicate(self.identity, 'clear')
+        self.assertEqual(await self.service.snapshot(self.identity), before)
+        self.assertEqual(await self.store.ledger(self.identity), ledger)
+        receipts = await asyncio.gather(*(
+            self.service.eradicate(self.identity, 'clear') for _ in range(3)
+        ))
+        self.assertTrue(all(r == receipts[0] for r in receipts))
+        self.assertEqual(receipts[0].data['experience'], 4)
+        after = await self.service.snapshot(self.identity)
+        self.assertEqual(after.account.experience, before.account.experience+4)
+        self.assertTrue(all(p.plant is None for p in after.plots))
+        with self.assertRaisesRegex(FarmError, 'nothing_to_eradicate'):
+            await self.service.eradicate(self.identity, 'empty')
+        self.assertEqual(await self.service.snapshot(self.identity), after)
+
+    async def test_failed_sowing_rolls_back_experience_seeds_and_plots(self):
+        await self.service.buy(self.identity, '萝卜', 2, 'buy')
+        before = await self.service.snapshot(self.identity)
+        ledger = await self.store.ledger(self.identity)
+        with self.assertRaisesRegex(FarmError, 'insufficient_stock'):
+            await self.service.sow(self.identity, '萝卜', 3, 'too-many')
+        with patch.object(SQLiteRepository, 'asset',
+                          side_effect=sqlite3.OperationalError('injected')):
+            with self.assertRaises(StorageError):
+                await self.service.sow(self.identity, '萝卜', 2, 'sow-fail')
+        self.assertEqual(await self.service.snapshot(self.identity), before)
+        self.assertEqual(await self.store.ledger(self.identity), ledger)
+        receipt = await self.service.sow(
+            self.identity, '萝卜', 2, 'sow-fail',
+        )
+        self.assertEqual(receipt.data['account']['experience'], 4)
 
     async def test_restart_and_cancelled_request_can_replay_result(self):
         entered = threading.Event()
