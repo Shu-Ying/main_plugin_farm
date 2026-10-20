@@ -1,4 +1,5 @@
 import importlib.util
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -56,3 +57,29 @@ class DataDirectoryTests(unittest.TestCase):
             self.module.prepare_directory(
                 self.base / 'farm_db', self.base / 'other/farm_preview',
             )
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows short paths only')
+    def test_migration_accepts_short_and_long_parent_paths(self):
+        import ctypes
+
+        parent = self.base / 'Farm migration long directory'
+        parent.mkdir()
+        buffer = ctypes.create_unicode_buffer(32768)
+        get_short_path = ctypes.windll.kernel32.GetShortPathNameW
+        get_short_path.argtypes = (
+            ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint,
+        )
+        get_short_path.restype = ctypes.c_uint
+        length = get_short_path(str(parent), buffer, len(buffer))
+        self.assertTrue(0 < length < len(buffer))
+        short_parent = Path(buffer.value)
+        if short_parent == parent.resolve():
+            self.skipTest('Short path aliases are disabled on this volume')
+        old = short_parent / 'farm_preview'
+        old.mkdir()
+        (old / 'farm-preview.sqlite3').write_bytes(b'preserved')
+        target = parent.resolve() / 'farm_db'
+        self.assertTrue(self.module.prepare_directory(target, old))
+        self.assertEqual((target / 'farm-preview.sqlite3').read_bytes(),
+                         b'preserved')
+        self.assertFalse(old.exists())

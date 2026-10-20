@@ -288,7 +288,8 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         )}
         with patch.dict(sys.modules, modules):
             imported = importlib.import_module(self.package + ".commands")
-            self.assertEqual(imported.runtime.data_dir, self.root / 'farm_db')
+            self.assertEqual(imported.runtime.data_dir,
+                             (self.root / 'farm_db').resolve())
             self.assertEqual(set(hooks["commands"]), set(self.module.COMMANDS))
             self.assertEqual(len(hooks["start"]), 1)
             await hooks["start"][0]()

@@ -14,7 +14,7 @@ def prepare_directory(target, legacy=None):
     if legacy is not None:
         legacy = Path(legacy).absolute()
         if (target.name != 'farm_db' or legacy.name != 'farm_preview'
-                or target.parent != legacy.parent):
+                or target.parent.resolve() != legacy.parent.resolve()):
             raise ValueError('Farm migration requires default sibling paths')
         if target.is_symlink() or legacy.is_symlink():
             raise ValueError('Farm migration does not follow directory links')
