@@ -20,7 +20,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
-        build(ROOT, self.root / "built", "0.1.0-preview.1")
+        build(ROOT, self.root / "built")
         self.package = "farm_fixture"
         module = ModuleType(self.package)
         module.__path__ = [str(self.root / "built/repository")]

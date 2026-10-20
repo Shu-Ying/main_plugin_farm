@@ -25,6 +25,8 @@ def main():
     if set(trigger) != {"push", "pull_request", "workflow_dispatch"}:
         raise ValueError("Unsafe or missing workflow trigger")
     inputs = trigger["workflow_dispatch"]["inputs"]
+    if set(inputs) != {"publish"}:
+        raise ValueError("Version must come from the root version.txt file")
     if inputs["publish"]["default"] != "false":
         raise ValueError("Publish must be opt-in")
     sync = source["jobs"]["sync-preview"]
@@ -35,7 +37,7 @@ def main():
         raise ValueError("Publish boundary differs")
     if generated["permissions"] != {"contents":"read"}:
         raise ValueError("Generated workflow permissions differ")
-    if generated["on"]["push"]["branches"] != ["farm-preview"]:
+    if generated["on"]["push"]["branches"] != ["main"]:
         raise ValueError("Generated branch differs")
     print("Workflow YAML and publication guards checked")
 

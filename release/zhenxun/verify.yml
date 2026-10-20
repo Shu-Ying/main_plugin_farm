@@ -1,7 +1,7 @@
 name: Verify generated farm preview
 on:
   push:
-    branches: [farm-preview]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read

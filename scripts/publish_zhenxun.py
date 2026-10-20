@@ -55,8 +55,6 @@ def publish(package, confirmed=False, request=None):
     repository = call("GET", "", None)
     if not repository:
         raise ValueError(f"Target repository is not accessible: {REPOSITORY}")
-    if repository.get("default_branch") == BRANCH:
-        raise ValueError("Preview must not be the repository default branch")
     ref = call("GET", f"git/ref/heads/{BRANCH}", None)
     parent = ref["object"]["sha"] if ref else None
     if parent:

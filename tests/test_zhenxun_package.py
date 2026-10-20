@@ -60,14 +60,15 @@ class ZhenxunPackageTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.output = self.root / "bundle"
-        self.bundle = build(ROOT, self.output, "0.1.0-preview.1")
+        self.bundle = build(ROOT, self.output)
 
     def test_reproducible_private_complete_package(self):
-        other = build(ROOT, self.root / "second", "0.1.0-preview.1")
+        other = build(ROOT, self.root / "second")
         self.assertEqual(self.bundle.read_bytes(), other.read_bytes())
         manifest = verify_package(self.bundle)
         self.assertEqual(manifest["target"], "zhenxun")
-        self.assertEqual(manifest["version"], "0.1.0-preview.1")
+        self.assertEqual(manifest["version"],
+                         (ROOT / "version.txt").read_text().strip())
         self.assertIn("dirty", manifest["source"])
         with ZipFile(self.bundle) as archive:
             paths = archive.namelist()
@@ -80,7 +81,7 @@ class ZhenxunPackageTests(unittest.TestCase):
             self.assertIn("from ..farm_core.domain", source)
             self.assertNotIn("from farm_core.domain", source)
         with self.assertRaises(FileExistsError):
-            build(ROOT, self.output, "0.1.0-preview.1")
+            build(ROOT, self.output)
 
     def test_install_and_existing_target_are_safe(self):
         plugins = self.root / "plugins"
@@ -131,11 +132,29 @@ class ZhenxunPackageTests(unittest.TestCase):
         from publish_zhenxun import publish
         report = publish(self.bundle)
         self.assertFalse(report["published"])
-        self.assertEqual(report["branch"], "farm-preview")
+        self.assertEqual(report["branch"], "main")
         self.assertEqual(report["repository"], "Shu-Ying/zhenxun_plugin_farm")
         self.assertNotIn("token", json.dumps(report))
-        with self.assertRaises(ValueError):
-            build(ROOT, self.root / "bad", "bad; echo secret")
+        from build_zhenxun import read_version
+        for value in ("bad; echo secret", "", "1.0.0\n2.0.0"):
+            with self.subTest(value=value):
+                (self.root / "version.txt").write_text(value)
+                with self.assertRaises(ValueError):
+                    read_version(self.root)
+
+    def test_version_file_controls_package_version(self):
+        from build_zhenxun import read_version
+        (self.root / "version.txt").write_text("1.2.3-preview.4\n")
+        self.assertEqual(read_version(self.root), "1.2.3-preview.4")
+        with patch("build_zhenxun.read_version",
+                   return_value="1.2.3-preview.4"):
+            bundle = build(ROOT, self.root / "versioned")
+        self.assertTrue(bundle.name.endswith("-1.2.3-preview.4.zip"))
+        self.assertEqual(verify_package(bundle)["version"], "1.2.3-preview.4")
+        with ZipFile(bundle) as archive:
+            self.assertEqual(archive.read(
+                "zhenxun_plugin_farm_preview/_version.py",
+            ), b'__version__ = "1.2.3-preview.4"\n')
 
     def clean_package(self):
         from verify_zhenxun import read_package, MANIFEST, ROOT_NAME
@@ -180,7 +199,7 @@ class ZhenxunPackageTests(unittest.TestCase):
                     self.assertTrue(publish(
                         package, True, request,
                     )["published"])
-                    self.assertIn(("PATCH", "git/refs/heads/farm-preview", {
+                    self.assertIn(("PATCH", "git/refs/heads/main", {
                         "sha":"created", "force":False,
                     }), calls)
 
@@ -200,7 +219,7 @@ class ZhenxunPackageTests(unittest.TestCase):
         with patch.dict("os.environ", {"FARM_RELEASE_TOKEN": "unit-test"}):
             self.assertTrue(publish(package, True, request)["published"])
         self.assertIn(("POST", "git/refs", {
-            "ref": "refs/heads/farm-preview", "sha": "created",
+            "ref": "refs/heads/main", "sha": "created",
         }), calls)
         self.assertFalse(any(c[0] == "PATCH" for c in calls))
 
@@ -211,15 +230,20 @@ class ZhenxunPackageTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "not accessible"):
                 publish(package, True, lambda *args: None)
 
-    def test_symlink_duplicate_and_default_branch_rejected(self):
+    def test_symlink_duplicate_and_unmanaged_branch_rejected(self):
         from publish_zhenxun import publish
         from zipfile import ZipInfo
         package, _ = self.clean_package()
         with patch.dict("os.environ", {"FARM_RELEASE_TOKEN":"unit-test"}):
-            with self.assertRaises(ValueError):
-                publish(package, True, lambda *args: {
-                    "default_branch":"farm-preview",
-                })
+            def unmanaged(method, path, data):
+                if path == "":
+                    return {"default_branch": "main"}
+                if path.startswith("git/ref/"):
+                    return {"object": {"sha": "existing"}}
+                return None
+
+            with self.assertRaisesRegex(ValueError, "not generated by Farm"):
+                publish(package, True, unmanaged)
         for kind in ("duplicate", "link"):
             bad = self.root / (kind + ".zip")
             bad.write_bytes(self.bundle.read_bytes())

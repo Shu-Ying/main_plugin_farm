@@ -24,10 +24,16 @@ def source_identity(root):
     }
 
 
-def build(root, output, version):
+def read_version(root):
+    version = (Path(root) / "version.txt").read_text(encoding="utf-8").strip()
     if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)?", version):
-        raise ValueError("Invalid preview version")
+        raise ValueError("Invalid version in root version.txt file")
+    return version
+
+
+def build(root, output):
     root, output = Path(root).resolve(), Path(output).resolve()
+    version = read_version(root)
     if output.exists():
         raise FileExistsError("Use a new output directory")
     if not output.is_relative_to(root / "dist") and output.is_relative_to(root):
@@ -63,6 +69,7 @@ def build(root, output, version):
     for name, source in {
         "LICENSE": root / "LICENSE",
         "README.md": root / "docs/11-zhenxun-preview.md",
+        "version.txt": root / "version.txt",
         "images/farm-preview.png": root / "images/farm-preview.png",
         "verify_package.py": root / "scripts/verify_zhenxun.py",
         ".github/workflows/verify.yml": root / "release/zhenxun/verify.yml",
@@ -107,10 +114,9 @@ def build(root, output, version):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--version", default="0.1.0-preview.1")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
-    print(build(root, args.output, args.version))
+    print(build(root, args.output))
 
 
 if __name__ == "__main__":

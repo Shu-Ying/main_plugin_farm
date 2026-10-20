@@ -6,13 +6,8 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      version:
-        description: Preview version
-        default: 0.1.0-preview.1
-        required: true
-        type: string
       publish:
-        description: Sync fixed farm-preview branch in zhenxun repository
+        description: Sync fixed main branch in zhenxun repository
         default: false
         type: boolean
 
@@ -54,8 +49,6 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
-    env:
-      PREVIEW_VERSION: ${{ inputs.version || '0.1.0-preview.1' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -66,7 +59,7 @@ jobs:
       - name: Build selected target only
         run: >-
           python scripts/build_zhenxun.py
-          --output dist/zhenxun-preview --version "$PREVIEW_VERSION"
+          --output dist/zhenxun-preview
       - name: Copy standalone helper scripts
         run: |
           cp scripts/install_zhenxun.py dist/zhenxun-preview/
