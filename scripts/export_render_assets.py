@@ -91,6 +91,7 @@ def export(root):
     metadata["panel"] = manifest["panel"]
     entries = {path.relative_to(source).as_posix(): path for path in paths}
     entries.update({name: webgl_source / name for name in manifest["images"]})
+    entries['webgl/shop-board.png'] = webgl_source / 'webgl/shop-board.png'
     with ZipFile(output, "w", compression=ZIP_STORED) as bundle:
         for name, path in sorted(entries.items()):
             content = path.read_bytes()

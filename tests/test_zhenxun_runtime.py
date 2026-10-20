@@ -69,7 +69,12 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
             replace(carrot, plant_id=9002, enabled=False, name="停用菜"),
             replace(carrot, plant_id=9003, crop_type=11, name="特殊道具"),
         ])
-        shop = await self.call("shop")
+        rendering = self.runtime.rendering
+        self.runtime.rendering = None
+        try:
+            shop = await self.call("shop")
+        finally:
+            self.runtime.rendering = rendering
         self.assertIn("胡萝卜（#1）", shop)
         for name in ("禁售菜", "停用菜", "特殊道具"):
             self.assertNotIn(name, shop)
@@ -77,6 +82,28 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("已完成", await self.call("buy", "#1 1", "number"))
         self.assertIn("不出售", await self.call("buy", "禁售菜 1", "blocked"))
         self.assertIn("（#1）", await self.call("inventory"))
+
+    async def test_shop_image_page_and_buy_by_name_or_id(self):
+        from io import BytesIO
+        from PIL import Image
+        result = await self.call('shop')
+        with Image.open(BytesIO(result)) as image:
+            self.assertEqual(image.size, (1024, 1536))
+        await self.call('register')
+        self.assertIn('已完成', await self.call('buy', '白萝卜 1', 'name'))
+        plant = self.runtime.service.catalogue.get('白萝卜')
+        self.assertIn('已完成', await self.call(
+            'buy', f'#{plant.plant_id} 1', 'id',
+        ))
+        from unittest.mock import AsyncMock
+        self.runtime.rendering.seed_shop = AsyncMock(return_value=b'shop')
+        self.assertEqual(await self.call('shop', '2'), b'shop')
+        args = self.runtime.rendering.seed_shop.call_args.args
+        self.assertEqual(len(args[0]), 6)
+        self.assertEqual(args[1].name, '离线玩家')
+        self.assertEqual(args[2], 2)
+        for page in ('0', '999999'):
+            self.assertIn('页码无效', await self.call('shop', page))
 
     async def test_farm_uses_calendar_theme_and_bee_is_not_a_user_option(self):
         rendering = self.runtime.rendering
@@ -251,8 +278,13 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         ))
         platform = ModuleType("zhenxun.utils.platform")
         platform.PlatformUtils = SimpleNamespace()
+        config = ModuleType("zhenxun.configs.config")
+        config.Config = SimpleNamespace(
+            get=lambda module: SimpleNamespace(configs={}),
+            _simple_data={},
+        )
         modules = {m.__name__:m for m in (
-            nonebot, adapters, params, uninfo, paths, messages, platform,
+            nonebot, adapters, params, uninfo, paths, messages, platform, config,
         )}
         with patch.dict(sys.modules, modules):
             imported = importlib.import_module(self.package + ".commands")

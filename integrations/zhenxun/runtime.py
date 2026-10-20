@@ -12,6 +12,7 @@ from ._vendor.farm_core.storage import SCHEMA_VERSION
 from ._vendor.farm_core.presentation import receipt_text, snapshot_text
 from ._vendor.farm_render import FarmRenderer, RenderOptions, RenderService
 from ._vendor.farm_render.seasons import season_for
+from ._vendor.farm_render.shop import shop_page
 from .data_paths import prepare_directory
 
 logger = logging.getLogger(__name__)
@@ -167,17 +168,29 @@ class Runtime:
                 return HELP
             if action == "shop":
                 page = int(args[0]) if args else 1
-                if not 1 <= page <= 100 or len(args) > 1:
+                if len(args) > 1:
                     raise ValueError()
-                plants = sorted(
-                    (p for p in self.service.catalogue if p.buyable),
-                    key=lambda p: p.plant_id,
-                )
-                chunk = plants[(page-1)*12:page*12]
-                return "种子商店 " + str(page) + "页\n" + "\n".join(
-                    f"{p.name}（#{p.plant_id}）："
-                    f"{p.cost}{'点券' if p.is_vip else '农场币'}"
-                    f" / 等级{p.level}" for p in chunk
+                try:
+                    chunk, pages = shop_page(self.service.catalogue, page)
+                except ValueError:
+                    return '页码无效，请发送：种子商店 1'
+                if self.rendering:
+                    account = None
+                    try:
+                        account = (await self.service.snapshot(who)).account
+                    except FarmError as error:
+                        if error.code != 'not_registered':
+                            raise
+                    return await self.rendering.seed_shop(
+                        chunk, account, page, pages,
+                    )
+                return f'种子商店 第{page}/{pages}页\n' + '\n'.join(
+                    f'{p.name}（#{p.plant_id}）：'
+                    f'{p.cost}{"点券" if p.is_vip else "农场币"}'
+                    f' / 等级{p.level}' for p in chunk
+                ) + (
+                    '\n购买种子 #编号 数量 或 购买种子 种子名 数量'
+                    + (f'\n下一页：种子商店 {page+1}' if page < pages else '')
                 )
             if action == "inventory":
                 if args:
