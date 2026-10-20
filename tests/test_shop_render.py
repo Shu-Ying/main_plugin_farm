@@ -46,4 +46,15 @@ class ShopRenderTests(unittest.TestCase):
         self.assertIn('按名称：购买种子 胡萝卜 5', labels)
         with Image.open(BytesIO(result)) as image:
             self.assertEqual(image.size, (1024, 1536))
-            self.assertEqual(image.format, 'PNG')
+            self.assertEqual(image.format, 'JPEG')
+
+    def test_explicit_png_and_default_jpeg_keep_dimensions(self):
+        renderer = FarmRenderer(choose_font())
+        rows, pages = shop_page(Catalogue.bundled(), 1)
+        jpeg = render_shop(renderer, rows, None, 1, pages)
+        png = render_shop(renderer, rows, None, 1, pages, 'PNG')
+        for content, codec in ((jpeg, 'JPEG'), (png, 'PNG')):
+            with Image.open(BytesIO(content)) as image:
+                self.assertEqual(image.size, (1024, 1536))
+                self.assertEqual(image.format, codec)
+        self.assertLess(len(jpeg), len(png) // 2)

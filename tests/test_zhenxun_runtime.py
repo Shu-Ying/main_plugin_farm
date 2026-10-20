@@ -161,6 +161,42 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
             self.module.operation_id("b", "p", "u", "2", "buy"),
         )
 
+    async def test_farm_details_image_pagination_text_and_single_snapshot(self):
+        from io import BytesIO
+        from PIL import Image
+        from unittest.mock import AsyncMock
+        self.assertEqual(self.module.COMMANDS['农场详述'], 'details')
+        self.assertEqual(self.module.COMMANDS['我的种子'], 'inventory')
+        await self.call('register')
+        await self.call('buy', '白萝卜 1', 'buy-details')
+        await self.call('sow', '白萝卜 1', 'sow-details')
+        before = await self.runtime.service.snapshot(self.runtime_identity())
+        with patch.object(self.runtime.service, 'snapshot',
+                          new=AsyncMock(return_value=before)) as query:
+            image = await self.call('details')
+            query.assert_awaited_once()
+        with Image.open(BytesIO(image)) as decoded:
+            self.assertEqual(decoded.width, 1024)
+        self.assertIsInstance(await self.call('inventory'), str)
+        self.assertIn('页码无效', await self.call('details', '999'))
+        self.assertIsInstance(await self.call('farm', 'detail'), bytes)
+        rendering = self.runtime.rendering
+        self.runtime.rendering = None
+        try:
+            text = await self.call('details')
+            self.assertIn('白萝卜', text)
+            self.assertIn('1/1季', text)
+            self.assertNotIn('被偷', text)
+        finally:
+            self.runtime.rendering = rendering
+
+    def runtime_identity(self):
+        identity = importlib.import_module(
+            self.package + '._vendor.farm_core',
+        ).Identity
+        return identity(self.runtime.deployment, self.context['bot_id'],
+                        self.context['platform'], self.context['user_id'])
+
     async def test_invalid_arguments_and_missing_font_are_explicit(self):
         await self.call("register")
         for action, arguments in (("buy", "白萝卜 nope"),
