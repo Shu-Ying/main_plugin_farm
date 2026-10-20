@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import closing
 from dataclasses import replace
 import importlib
 import importlib.util
@@ -216,28 +217,60 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(before, await self.call("inventory"))
 
-    async def test_default_directory_migration_keeps_account_and_inventory(self):
-        old = self.root / 'migration/farm_preview'
+    async def test_existing_preview_directory_is_ignored(self):
+        old = self.root / 'directories/farm_preview'
         target = old.with_name('farm_db')
         previous = self.module.Runtime(old, choose_font())
         await previous.start()
         try:
-            await previous.execute('register', '迁移农场', **self.context)
-            before = await previous.execute('inventory', '', **self.context)
+            await previous.execute('register', '旧农场', **self.context)
         finally:
             await previous.close()
-        current = self.module.Runtime(
-            target, choose_font(), legacy_data_dir=old,
-        )
+        old_database = old / 'farm.sqlite3'
+        before = old_database.read_bytes()
+        target.mkdir()
+        current = self.module.Runtime(target, choose_font())
         await current.start()
         try:
-            self.assertFalse(old.exists())
-            self.assertTrue((target / 'farm-preview.sqlite3').is_file())
+            self.assertEqual(old_database.read_bytes(), before)
+            self.assertTrue((target / 'farm.sqlite3').is_file())
             self.assertEqual(await current.execute(
                 'inventory', '', **self.context,
-            ), before)
+            ), '请先发送：开通农场')
         finally:
             await current.close()
+
+    async def test_first_command_imports_legacy_and_binds_identity(self):
+        from test_legacy_migration import create_legacy
+
+        source = self.root / 'data/farm.db'
+        create_legacy(source)
+        before = source.read_bytes()
+        result = await self.call('inventory')
+        self.assertIn('旧农场', result)
+        self.assertIn('1234', result)
+        self.assertTrue((self.root / 'data/farm.sqlite3').is_file())
+        self.assertFalse((self.root / 'data/farm-preview.sqlite3').exists())
+        self.assertEqual(await self.call('inventory'), result)
+        self.assertIn('已绑定其他机器人或平台', await self.call(
+            'register', bot_id='other',
+        ))
+        self.assertEqual(source.read_bytes(), before)
+
+    async def test_failed_migration_does_not_register_empty_account(self):
+        from test_legacy_migration import create_legacy
+        import sqlite3
+
+        source = self.root / 'data/farm.db'
+        create_legacy(source)
+        with closing(sqlite3.connect(source)) as db, db:
+            db.execute("UPDATE userSeed SET seed='不存在的作物'")
+        self.assertIn('无法迁移', await self.call('register'))
+        identity = self.module.Identity(
+            'zhenxun-preview', 'bot', 'OneBot V11', '1',
+        )
+        with self.assertRaisesRegex(self.module.FarmError, 'not_registered'):
+            await self.runtime.store.snapshot(identity)
 
     async def test_mock_host_load_registers_hooks_and_original_matchers(self):
         hooks = {"start":[], "close":[], "commands":{}}
