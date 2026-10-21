@@ -8,6 +8,7 @@ import hashlib
 
 from .shop import render_shop
 from .details import render_details
+from .warehouse import render_warehouse
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +106,29 @@ class RenderService:
             task = asyncio.create_task(self._run_function(
                 render_details, self.renderer, identity, snapshot, now,
                 page, theme, image_format, avatar,
+            ))
+            self._pending[key] = task
+
+            def finished(done):
+                self._pending.pop(key, None)
+                if not done.cancelled():
+                    done.exception()
+
+            task.add_done_callback(finished)
+        return await asyncio.shield(task)
+
+    async def warehouse(self, rows, snapshot, kind, page, pages,
+                        image_format='AUTO'):
+        if self._closed:
+            raise RuntimeError('Render service closed')
+        key = ('warehouse', rows, snapshot, kind, page, pages, image_format)
+        task = self._pending.get(key)
+        if task is None:
+            if len(self._pending) >= self._max_pending:
+                raise RuntimeError('Render queue full')
+            task = asyncio.create_task(self._run_function(
+                render_warehouse, self.renderer, rows, snapshot, kind,
+                page, pages, image_format,
             ))
             self._pending[key] = task
 

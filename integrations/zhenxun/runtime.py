@@ -17,12 +17,15 @@ from ._vendor.farm_render import FarmRenderer, RenderOptions, RenderService
 from ._vendor.farm_render.seasons import season_for
 from ._vendor.farm_render.shop import shop_page
 from ._vendor.farm_render.details import detail_rows, details_text
+from ._vendor.farm_render.warehouse import (
+    warehouse_page, warehouse_rows, warehouse_text,
+)
 
 logger = logging.getLogger(__name__)
 COMMANDS = {
     "开通农场":"register", "我的农场":"farm", "农场详述":"details",
     "我的农场币":"inventory", "我的点券":"inventory",
-    "我的种子":"inventory", "我的作物":"inventory",
+    "我的种子":"seeds", "我的作物":"crops",
     "种子商店":"shop", "农场帮助":"help", "购买种子":"buy",
     "播种":"sow", "收获":"harvest", "铲除":"eradicate",
     "作物加锁":"lock", "作物解锁":"unlock", "出售作物":"sell",
@@ -32,7 +35,7 @@ HELP = (
     "开通农场 [名称]｜我的农场 [高清]｜农场详述 [页码]\n"
     "地块编号 [高清]｜查看当前土地编号及开垦位置\n"
     "种子商店 [页码]｜购买种子 作物 数量｜播种 作物 [数量]\n"
-    "收获｜铲除｜农场除虫｜我的种子｜我的作物\n"
+    "收获｜铲除｜农场除虫｜我的种子 [页码]｜我的作物 [页码]\n"
     "作物加锁 作物｜作物解锁 作物｜出售作物 [作物] [数量]\n"
     "作物可填写名称或 #编号；同名作物请使用商店或仓库中的编号。\n"
     "每成功播种1块地获得2经验；收获经验按作物结算。\n"
@@ -170,8 +173,8 @@ class Runtime:
             if action == "farm" and args:
                 aliases = {
                     "detail":"details", "my-point":"inventory",
-                    "my-vipPoint":"inventory", "my-seed":"inventory",
-                    "my-plant":"inventory", "seed-shop":"shop",
+                    "my-vipPoint":"inventory", "my-seed":"seeds",
+                    "my-plant":"crops", "seed-shop":"shop",
                     "buy-seed":"buy", "sowing":"sow", "harvest":"harvest",
                     "eradicate":"eradicate", "lock-plant":"lock",
                     "unlock-plant":"unlock", "sell-plant":"sell",
@@ -231,6 +234,25 @@ class Runtime:
                 return await self.rendering.farm_details(
                     who, snapshot, now, page, season_for(now),
                     image_format=self.image_format, avatar=avatar,
+                )
+            if action in ('crops', 'seeds'):
+                title = '我的作物' if action == 'crops' else '我的种子'
+                if len(args) > 1:
+                    raise ValueError()
+                try:
+                    page = int(args[0]) if args else 1
+                except ValueError:
+                    return f'页码无效，请发送：{title} 1'
+                snapshot = await self.service.snapshot(who)
+                rows = warehouse_rows(snapshot, self.service.catalogue, action)
+                try:
+                    _, pages = warehouse_page(rows, page)
+                except ValueError:
+                    return f'页码无效，请发送：{title} 1'
+                if not self.rendering:
+                    return warehouse_text(rows, snapshot, action, page, pages)
+                return await self.rendering.warehouse(
+                    rows, snapshot, action, page, pages, self.image_format,
                 )
             if action == "inventory":
                 if args:

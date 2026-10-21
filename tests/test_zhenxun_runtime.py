@@ -83,6 +83,38 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('待开垦（24块）：7、8、9', text)
         self.assertIn('农场详述', text)
 
+    async def test_classified_warehouse_images_text_and_read_only_paging(self):
+        from io import BytesIO
+        from PIL import Image
+        from unittest.mock import AsyncMock
+        self.assertEqual(self.module.COMMANDS['我的作物'], 'crops')
+        self.assertEqual(self.module.COMMANDS['我的种子'], 'seeds')
+        await self.call('register')
+        await self.call('buy', '胡萝卜 2', 'warehouse-buy')
+        before = await self.runtime.service.snapshot(self.runtime_identity())
+        with patch.object(self.runtime.service, 'snapshot',
+                          new=AsyncMock(return_value=before)) as query:
+            content = await self.call('seeds', message=None)
+            query.assert_awaited_once()
+        with Image.open(BytesIO(content)) as image:
+            self.assertEqual(image.format, 'JPEG')
+        self.assertEqual(before, await self.runtime.service.snapshot(
+            self.runtime_identity(),
+        ))
+        for invalid in ('0', '999', 'abc'):
+            self.assertIn('页码无效', await self.call('seeds', invalid))
+        self.assertIn('开通农场', await self.call('crops', user_id='other'))
+        rendering = self.runtime.rendering
+        self.runtime.rendering = None
+        try:
+            text = await self.call('seeds', message=None)
+            self.assertIn('胡萝卜（#1） 2粒', text)
+            self.assertNotIn('累计经验', text)
+            self.assertIn('暂无作物', await self.call('crops', message=None))
+            self.assertEqual(text, await self.call('farm', 'my-seed'))
+        finally:
+            self.runtime.rendering = rendering
+
     async def test_original_commands_transactions_and_png(self):
         self.assertNotIn("测试农场", self.module.COMMANDS)
         self.assertIn("开通农场", self.module.COMMANDS)
@@ -204,7 +236,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         from PIL import Image
         from unittest.mock import AsyncMock
         self.assertEqual(self.module.COMMANDS['农场详述'], 'details')
-        self.assertEqual(self.module.COMMANDS['我的种子'], 'inventory')
+        self.assertEqual(self.module.COMMANDS['我的种子'], 'seeds')
         await self.call('register')
         await self.call('buy', '白萝卜 1', 'buy-details')
         await self.call('sow', '白萝卜 1', 'sow-details')
