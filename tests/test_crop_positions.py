@@ -8,6 +8,7 @@ from farm_core import Catalogue, Identity
 from farm_core.domain import Account, Plot, Snapshot
 from farm_render import FarmRenderer, RenderOptions
 from farm_render.canvas import Canvas
+from farm_render.placement import ground_contact
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -26,8 +27,8 @@ class CropPositionTests(unittest.TestCase):
             (Plot(1, plant, plant.growth_seconds),),
         ), now)
 
-    def test_growth_stages_use_full_canvas_bottom_for_every_crop(self):
-        for name in ("草莓", "橙子", "樱桃", "茄子", "黄瓜"):
+    def test_visible_contacts_use_land_center_for_all_stages_and_sizes(self):
+        for name in ("胡萝卜", "草莓", "橙子", "樱桃", "茄子", "黄瓜"):
             phases = self.renderer.assets.metadata["plants"][name]["phase"]
             for now in dict.fromkeys(map(int, phases.split(","))):
                 for width in (1024, 1536, 3072):
@@ -43,19 +44,15 @@ class CropPositionTests(unittest.TestCase):
                         pos = meta["positions"][0]
                         sw, sh = meta["soil_size"]
                         scale = width / 3072
-                        self.assertLessEqual(abs(
-                            xy[0] + image.width / 2
-                            - (pos["x"] + sw/2) * scale
-                        ), 1)
-                        self.assertLessEqual(abs(
-                            xy[1] + image.height
-                            - (pos["y"] + sh) * scale
-                        ), .5)
                         native = meta["images"][scene.plots[0].sprite]["size"]
-                        self.assertEqual(image.size, tuple(
-                            max(1, round(n * .75 * sh / 79.5 * scale))
-                            for n in native
-                        ))
+                        cx, cy = pos['x']+sw/2, pos['y']+sh/2
+                        contact = ground_contact(image)
+                        for value, expected in zip(
+                            (xy[0]+contact[0], xy[1]+contact[1]), (cx, cy),
+                        ):
+                            self.assertLessEqual(abs(value-expected*scale), .5)
+                        self.assertAlmostEqual(image.width/image.height,
+                                               native[0]/native[1], delta=.06)
 
     def test_seed_and_wither_use_public_sprites_and_distinct_targets(self):
         seed = self.scene("草莓", 0)
@@ -65,7 +62,7 @@ class CropPositionTests(unittest.TestCase):
             seed.account, (), (Plot(1, plant, None, plant.crop),),
         ), 999999)
         self.assertEqual(dead.plots[0].sprite, "webgl/wither.png")
-        for scene, shift in ((seed, 0), (dead, 8)):
+        for scene in (seed, dead):
             canvas = Canvas.new((3072, 1872))
             with patch.object(canvas, "paste") as paste:
                 self.renderer._plants(canvas, scene, RenderOptions(width=3072))
@@ -73,9 +70,9 @@ class CropPositionTests(unittest.TestCase):
             meta = self.renderer.assets.metadata
             pos = meta["positions"][0]
             height = meta["soil_size"][1]
+            contact = ground_contact(image, centered=scene == seed)
             self.assertLessEqual(abs(
-                xy[1] + image.height - (pos["y"] + height/2
-                                       + shift*height/79.5)
+                xy[1]+contact[1]-(pos['y']+height/2)
             ), .5)
 
     def test_missing_sprite_keeps_safe_placeholder(self):
@@ -90,7 +87,9 @@ class CropPositionTests(unittest.TestCase):
 
     def test_exported_configuration_has_no_manual_stage_anchors(self):
         meta = self.renderer.assets.metadata
-        self.assertEqual(meta["placement"]["schema"], 2)
+        self.assertEqual(meta["placement"]["schema"], 4)
+        self.assertEqual(meta['placement']['mode'], 'visible_contact_center')
+        self.assertLess(meta['placement']['grid_fit']['rms'], 5)
         self.assertTrue(all("stages" not in p for p in meta["plants"].values()))
 
     def test_pest_count_changes_cache_and_pest_positions_use_land_center(self):
@@ -113,14 +112,14 @@ class CropPositionTests(unittest.TestCase):
         meta = self.renderer.assets.metadata
         pos = meta["positions"][0]
         sw, sh = meta["soil_size"]
-        unit = sh / 79.5
+        (a, b), (c, d) = meta['placement']['scene_transform']
         for call, (x, y) in zip(paste.call_args_list,
                                 ((-26, 13), (-5, 42), (24, 24))):
             image, xy = call.args
             self.assertLessEqual(abs(xy[0] + image.width/2
-                - (pos["x"]+sw/2+x*unit)), .5)
+                - (pos["x"]+sw/2+a*x+b*y)), 1)
             self.assertLessEqual(abs(xy[1] + image.height/2
-                - (pos["y"]+sh/2-y*unit)), .5)
+                - (pos["y"]+sh/2+c*x+d*y)), 1)
         self.assertEqual(len(meta["pest"]["frames"]), 38)
 
     def test_pest_frames_are_varied_and_stable_across_renderers_and_sizes(self):

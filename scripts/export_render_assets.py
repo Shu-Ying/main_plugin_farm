@@ -4,20 +4,65 @@ import argparse
 import hashlib
 from io import BytesIO
 import json
+import math
 from pathlib import Path
 from zipfile import ZIP_STORED, ZipFile, ZipInfo
 
 from PIL import Image
 
 
+def fit_grid(source, target):
+    if len(source) != 30 or len(target) != 30:
+        raise ValueError('Expected all 30 reference land centers')
+    design = [[x, y, 1] for x, y in source]
+    normal = [[sum(row[i]*row[j] for row in design)
+               for j in range(3)] for i in range(3)]
+
+    def solve(values):
+        matrix = [row[:] + [value] for row, value in zip(normal, values)]
+        for i in range(3):
+            pivot = max(range(i, 3), key=lambda k: abs(matrix[k][i]))
+            matrix[i], matrix[pivot] = matrix[pivot], matrix[i]
+            divisor = matrix[i][i]
+            if abs(divisor) < 1e-8:
+                raise ValueError('Reference grid is degenerate')
+            matrix[i] = [v/divisor for v in matrix[i]]
+            for j in range(3):
+                if i != j:
+                    factor = matrix[j][i]
+                    matrix[j] = [v-factor*w for v, w in zip(
+                        matrix[j], matrix[i],
+                    )]
+        return [row[-1] for row in matrix]
+
+    affine = [solve([sum(row[i]*point[k]
+                        for row, point in zip(design, target))
+                     for i in range(3)]) for k in range(2)]
+    errors = [math.hypot(*[
+        sum(a*b for a, b in zip(row, point))-value
+        for row, value in zip(affine, dest)
+    ]) for point, dest in zip(design, target)]
+    if max(errors) > 10:
+        raise ValueError('Local grid no longer matches reference geometry')
+    return [row[:2] for row in affine], {
+        'rms': math.sqrt(sum(e*e for e in errors)/len(errors)),
+        'maximum': max(errors), 'points': len(errors),
+    }
+
+
 def apply_positions(root, metadata):
     document = json.loads((
         root / "src/farm_render/data/crop_positions.json"
     ).read_bytes())
-    if document.get("schema") != 2:
+    if document.get("schema") != 4:
         raise ValueError("Unsupported crop position schema")
-    if document.get("mode") != "full_canvas_bottom_center":
+    if document.get("mode") != "visible_contact_center":
         raise ValueError("Unsupported crop placement mode")
+    w, h = metadata['soil_size']
+    target = [[p['x']+w/2, p['y']+h/2] for p in metadata['positions']]
+    transform, errors = fit_grid(document['source_land_centers'], target)
+    document['scene_transform'] = transform
+    document['grid_fit'] = errors
     metadata["placement"] = document
 
 
