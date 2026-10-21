@@ -61,13 +61,16 @@ class TransactionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(snapshot.account.point, 500)
         self.assertEqual(snapshot.account.vip_point, 0)
         self.assertEqual(snapshot.account.experience, 0)
-        self.assertEqual(len(snapshot.plots), 3)
+        self.assertEqual([p.slot for p in snapshot.plots], list(range(1, 7)))
         self.assertTrue(all(p.plant is None for p in snapshot.plots))
         repeated = await self.service.register(
             self.identity, "另一个名称", "register-again",
         )
         self.assertFalse(repeated.data["created"])
         self.assertEqual(repeated.data["account"]["point"], 500)
+        self.assertEqual(
+            (await self.service.snapshot(self.identity)).plots, snapshot.plots,
+        )
         self.assertEqual(len(await self.store.ledger(self.identity)), 1)
 
     async def test_scopes_are_independent(self):
@@ -158,13 +161,13 @@ class TransactionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.data["account"]["vip_point"], 6)
 
     async def test_sow_all_and_explicit_overflow(self):
-        await self.service.buy(self.identity, "萝卜", 5, "buy")
+        await self.service.buy(self.identity, "萝卜", 8, "buy")
         before = await self.service.snapshot(self.identity)
         with self.assertRaisesRegex(FarmError, "insufficient_empty_plots"):
-            await self.service.sow(self.identity, "萝卜", 4, "too-many")
+            await self.service.sow(self.identity, "萝卜", 7, "too-many")
         self.assertEqual(await self.service.snapshot(self.identity), before)
         result = await self.service.sow(self.identity, "萝卜", None, "all")
-        self.assertEqual(result.data["quantity"], 3)
+        self.assertEqual(result.data["quantity"], 6)
         self.assertEqual(result.data["seeds"], 2)
 
     async def test_maturity_boundary_and_multi_crop_lifecycle(self):

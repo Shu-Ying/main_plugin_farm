@@ -55,7 +55,10 @@ class FarmService:
 
         def operation(repository, now):
             created = repository.register(name)
-            return self._result(repository, created=created)
+            return self._result(
+                repository, created=created,
+                plot_count=len(repository.plots()),
+            )
 
         return await self._execute(
             identity, operation_id, "register", {"name": name}, operation,

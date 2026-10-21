@@ -1,6 +1,7 @@
 """真寻接入编排；核心私有导入，测试数据与旧版隔离。"""
 
 import hashlib
+from dataclasses import replace
 import json
 import logging
 from pathlib import Path
@@ -9,7 +10,9 @@ import shlex
 from ._vendor.farm_core import Catalogue, FarmService, Identity, SQLiteStore
 from ._vendor.farm_core.domain import FarmError
 from ._vendor.farm_core.storage import SCHEMA_VERSION
-from ._vendor.farm_core.presentation import receipt_text, snapshot_text
+from ._vendor.farm_core.presentation import (
+    plot_ids_text, receipt_text, snapshot_text,
+)
 from ._vendor.farm_render import FarmRenderer, RenderOptions, RenderService
 from ._vendor.farm_render.seasons import season_for
 from ._vendor.farm_render.shop import shop_page
@@ -23,10 +26,11 @@ COMMANDS = {
     "种子商店":"shop", "农场帮助":"help", "购买种子":"buy",
     "播种":"sow", "收获":"harvest", "铲除":"eradicate",
     "作物加锁":"lock", "作物解锁":"unlock", "出售作物":"sell",
-    "农场除虫":"clear_pests", "除虫":"clear_pests",
+    "农场除虫":"clear_pests", "除虫":"clear_pests", "地块编号":"plot_ids",
 }
 HELP = (
     "开通农场 [名称]｜我的农场 [高清]｜农场详述 [页码]\n"
+    "地块编号 [高清]｜查看当前土地编号及开垦位置\n"
     "种子商店 [页码]｜购买种子 作物 数量｜播种 作物 [数量]\n"
     "收获｜铲除｜农场除虫｜我的种子｜我的作物\n"
     "作物加锁 作物｜作物解锁 作物｜出售作物 [作物] [数量]\n"
@@ -232,10 +236,12 @@ class Runtime:
                 if args:
                     raise ValueError()
                 return snapshot_text(await self.service.snapshot(who))
-            if action == "farm":
+            if action in ("farm", "plot_ids"):
                 if args not in ([], ["高清"]):
                     raise ValueError()
                 if not self.rendering:
+                    if action == "plot_ids":
+                        return plot_ids_text(await self.service.snapshot(who))
                     return "请配置 FARM_PREVIEW_FONT 为可用中文字体路径。"
                 now = self.service.clock()
                 theme = season_for(now)
@@ -245,6 +251,8 @@ class Runtime:
                     if args else RenderOptions(format=self.image_format,
                                                theme=theme)
                 )
+                if action == "plot_ids":
+                    options = replace(options, show_plot_ids=True)
                 picture = await self.rendering.my_farm(
                     self.service, who, options=options, avatar=avatar,
                     supported=("JPEG",),
@@ -280,7 +288,16 @@ class Runtime:
                 receipt = await getattr(self.service, action)(who, op)
             else:
                 return HELP
-            return receipt_text(receipt)
+            text = receipt_text(receipt)
+            if action == 'register':
+                if receipt.data['created']:
+                    count = receipt.data.get('plot_count')
+                    granted = (f'已获得{count}块土地' if count is not None
+                               else '已获得初始土地')
+                    text += f'\n{granted}，发送「地块编号」查看位置。'
+                else:
+                    text += '\n发送「地块编号」查看土地位置。'
+            return text
         except FarmError as error:
             return ERRORS.get(error.code, "操作未完成：" + error.code)
         except ValueError:

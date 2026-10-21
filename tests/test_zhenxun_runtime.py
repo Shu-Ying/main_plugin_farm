@@ -45,6 +45,44 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
             **{**self.context, "message_id":message, **changes},
         )
 
+    async def test_plot_ids_command_registration_hint_and_read_only(self):
+        from io import BytesIO
+        from PIL import Image
+        from unittest.mock import AsyncMock
+        self.assertEqual(self.module.COMMANDS['地块编号'], 'plot_ids')
+        self.assertIn('地块编号', await self.call('help'))
+        first = await self.call('register')
+        self.assertIn('6块土地', first)
+        self.assertIn('地块编号', first)
+        repeated = await self.call('register', message='again')
+        self.assertNotIn('已获得6块土地', repeated)
+        before = await self.runtime.service.snapshot(self.runtime_identity())
+        with patch.object(self.runtime.service, 'snapshot',
+                          new=AsyncMock(return_value=before)) as query:
+            result = await self.call('plot_ids', message=None)
+            query.assert_awaited_once()
+        with Image.open(BytesIO(result)) as image:
+            self.assertEqual(image.width, 1024)
+            self.assertEqual(image.format, 'JPEG')
+        self.assertEqual(
+            await self.runtime.service.snapshot(self.runtime_identity()),
+            before,
+        )
+        self.assertIn('参数有误', await self.call('plot_ids', '1'))
+        self.assertIn('开通农场', await self.call('plot_ids', user_id='other'))
+
+    async def test_plot_ids_text_fallback_uses_actual_owned_slots(self):
+        await self.call('register')
+        rendering = self.runtime.rendering
+        self.runtime.rendering = None
+        try:
+            text = await self.call('plot_ids', message=None)
+        finally:
+            self.runtime.rendering = rendering
+        self.assertIn('已开垦（6块）：1、2、3、4、5、6', text)
+        self.assertIn('待开垦（24块）：7、8、9', text)
+        self.assertIn('农场详述', text)
+
     async def test_original_commands_transactions_and_png(self):
         self.assertNotIn("测试农场", self.module.COMMANDS)
         self.assertIn("开通农场", self.module.COMMANDS)

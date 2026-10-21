@@ -33,6 +33,20 @@ def receipt_text(receipt: Receipt) -> str:
     return "\n".join(lines)
 
 
+def plot_ids_text(snapshot: Snapshot) -> str:
+    """无图片能力时按实际快照返回地块编号。"""
+    owned = sorted(plot.slot for plot in snapshot.plots)
+    remaining = sorted(set(range(1, 31)) - set(owned))
+    return '\n'.join((
+        '地块编号',
+        f'已开垦（{len(owned)}块）：' + ('、'.join(map(str, owned)) or '无'),
+        f'待开垦（{len(remaining)}块）：'
+        + ('、'.join(map(str, remaining)) or '无'),
+        '前两排交错编号，之后逐排推进。',
+        '发送「农场详述」查看各地块的作物信息。',
+    ))
+
+
 def snapshot_text(snapshot: Snapshot) -> str:
     account = snapshot.account
     lines = [

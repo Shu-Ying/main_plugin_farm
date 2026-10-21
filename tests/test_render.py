@@ -31,7 +31,7 @@ def snapshot(plots=None, **account):
     values = dict(name="演示农场", point=500, vip_point=0, experience=0)
     values.update(account)
     return Snapshot(Account(**values), (), tuple(
-        plots if plots is not None else [Plot(i) for i in range(1, 4)]
+        plots if plots is not None else [Plot(i) for i in range(1, 7)]
     ))
 
 
@@ -41,6 +41,38 @@ class RenderTests(unittest.TestCase):
         self.renderer = FarmRenderer(FONT)
         self.who = Identity("test", "local", "qq", "one")
         self.plant = next(iter(Catalogue.bundled()))
+
+    def test_plot_ids_follow_positions_and_mark_owned_slots(self):
+        options = RenderOptions(width=1536, show_plot_ids=True)
+        scene = self.renderer.scene(self.who, snapshot(), 0)
+        canvas = Canvas.new((1536, 936), 'white')
+        with patch.object(canvas, 'text', wraps=canvas.text) as text:
+            self.renderer._plot_ids(canvas, scene, options)
+        self.assertEqual(
+            [call.args[1] for call in text.call_args_list[:30]],
+            [str(i) for i in range(1, 31)],
+        )
+        for slot, color in ((1, '#fff2ca'), (6, '#fff2ca'),
+                            (7, '#d5e8bc'), (30, '#d5e8bc')):
+            pos = self.renderer.assets.metadata['positions'][slot-1]
+            x, y = round((pos['x']+117)/2), round((pos['y']+78)/2)
+            from PIL import ImageColor
+            self.assertEqual(canvas.image.getpixel((x-15, y))[:3],
+                             ImageColor.getrgb(color))
+
+    def test_plot_id_image_has_separate_cache_from_normal_farm(self):
+        plain = self.renderer.render(self.who, snapshot(), 0)
+        options = RenderOptions(show_plot_ids=True)
+        numbered = self.renderer.render(self.who, snapshot(), 0, options)
+        self.assertFalse(numbered.cache_hit)
+        self.assertNotEqual(plain.content, numbered.content)
+        self.assertTrue(self.renderer.render(
+            self.who, snapshot(), 0, options,
+        ).cache_hit)
+        self.assertEqual(
+            self.renderer.render(self.who, snapshot(), 0).content,
+            plain.content,
+        )
 
     def test_canvas_alpha_crop_text_and_formats(self):
         canvas = Canvas.new((100, 80), "white")

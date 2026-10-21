@@ -42,7 +42,7 @@ class SQLiteRepository:
         )
         self._db.executemany(
             "INSERT INTO plots(identity, slot) VALUES (?, ?)",
-            [(self._identity, slot) for slot in range(1, 4)],
+            [(self._identity, slot) for slot in range(1, 7)],
         )
         self.asset(Asset.POINT, 500)
         return True
