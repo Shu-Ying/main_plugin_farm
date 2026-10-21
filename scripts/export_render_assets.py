@@ -156,6 +156,12 @@ def export(root):
             bundle.writestr(item, content)
     apply_positions(root, metadata)
     apply_decorations(root, metadata)
+    # 与已发布的地块编号一致：前两行交错排列，初始六块组成 2×3。
+    # 标定仍使用上面的旧资源顺序；这里只调整最终运行时的编号位置。
+    positions = metadata["positions"]
+    metadata["positions"] = [positions[index] for index in (
+        0, 6, 1, 7, 2, 8, 3, 9, 4, 10, 5, 11,
+    )] + positions[12:]
     return output.getvalue(), (
         json.dumps(metadata, ensure_ascii=False, sort_keys=True, indent=2)
         + "\n"

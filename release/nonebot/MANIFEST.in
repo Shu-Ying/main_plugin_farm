@@ -1,0 +1,3 @@
+include version.txt LICENSE README.md FARM-MANIFEST.json verify_package.py
+include images/farm-preview.png
+recursive-include nonebot_plugin_farm *.py *.json *.zip *.md

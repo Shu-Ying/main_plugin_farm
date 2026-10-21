@@ -1,6 +1,6 @@
 {
   "schema": "farm.release-targets.v1",
-  "status": "zhenxun-preview",
+  "status": "zhenxun-and-nonebot-preview",
   "source_repository": "https://github.com/Shu-Ying/main_plugin_farm.git",
   "network_actions_enabled": false,
   "targets": [
@@ -25,7 +25,9 @@
       "repository": "https://github.com/Shu-Ying/nonebot_plugin_farm.git",
       "observed_default_branch": "main",
       "entry_directory": "integrations/nonebot",
-      "enabled": false
+      "enabled": true,
+      "preview_branch": "main",
+      "publish_by_default": false
     }
   ]
 }

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nonebot_plugin_farm"
+dynamic = ["version"]
+description = "快乐的农场时光"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "GPL-3.0-or-later"}
+authors = [{name = "Art_Sakura"}, {name = "Shu-Ying"}]
+dependencies = [
+    "nonebot2>=2.4,<3",
+    "nonebot-plugin-alconna>=0.60,<1",
+    "nonebot-plugin-uninfo>=0.6,<1",
+    "nonebot-plugin-localstore>=0.7,<1",
+    "Pillow>=10.4,<13",
+]
+
+[project.urls]
+Repository = "https://github.com/Shu-Ying/nonebot_plugin_farm"
+
+[tool.setuptools.dynamic]
+version = {file = "version.txt"}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nonebot_plugin_farm*"]
+
+[tool.setuptools.package-data]
+"nonebot_plugin_farm._vendor.farm_core" = ["data/*.json"]
+"nonebot_plugin_farm._vendor.farm_render" = [
+    "data/*.json", "data/*.zip", "data/*.md",
+]

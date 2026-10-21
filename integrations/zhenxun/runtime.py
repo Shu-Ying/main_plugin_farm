@@ -1,4 +1,4 @@
-"""真寻接入编排；核心私有导入，测试数据与旧版隔离。"""
+"""真寻与 NoneBot 共用的运行编排；不导入宿主框架。"""
 
 import hashlib
 from dataclasses import replace
@@ -87,9 +87,11 @@ def operation_id(bot_id, platform, user_id, message_id, action):
 
 class Runtime:
     def __init__(self, data_dir, font_path=None, deployment="zhenxun-preview",
-                 image_format="AUTO", *, font_dir=None):
+                 image_format="AUTO", *, font_dir=None,
+                 font_setting="FARM_PREVIEW_FONT"):
         self.data_dir = Path(data_dir).resolve()
         self.font_path = font_path
+        self.font_setting = font_setting
         self.font_dir = Path(font_dir or "resources/font")
         self.deployment = deployment
         self.image_format = image_format
@@ -273,7 +275,7 @@ class Runtime:
                 if not self.rendering:
                     if action == "plot_ids":
                         return plot_ids_text(await self.service.snapshot(who))
-                    return "请配置 FARM_PREVIEW_FONT 为可用中文字体路径。"
+                    return f"请配置 {self.font_setting} 为可用中文字体路径。"
                 now = self.service.clock()
                 theme = season_for(now)
                 logger.info("farm preview seasonal theme=%s", theme)

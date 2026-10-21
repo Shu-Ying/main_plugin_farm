@@ -5,4 +5,10 @@ check_baseline.py 为已实现的离线校验工具。
 检查清单哈希、缺失/新增文件、Python 3.10 语法、JSON 与静态作物库，
 不导入旧插件、不联网、不读真实玩家库。
 
-迁移、分包和远程同步工具尚未实施，不提供会覆盖仓库的占位脚本。
+`build_zhenxun.py` / `build_nonebot.py` 从白名单生成对应框架仓库和 ZIP。
+`verify_zhenxun.py` / `verify_nonebot.py` 用标准库校验生成清单与文件。
+`publish_zhenxun.py` / `publish_nonebot.py` 默认离线报告，显式
+`--publish` 才读取 `FARM_RELEASE_TOKEN` 并同步固定目标仓库。
+`check_nonebot_runtime.py` 在临时数据目录检查已安装的 NoneBot 插件；
+也可用 `--repository` 指定生成仓库，需要 NoneBot 依赖和 OneBot 适配器。
+`check_workflows.py` 检查源工作流、生成工作流及发布权限边界。
