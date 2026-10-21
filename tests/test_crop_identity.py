@@ -116,6 +116,8 @@ class MigrationTests(unittest.IsolatedAsyncioTestCase):
     def create_v1(self, path, unknown=False, version=1):
         with closing(sqlite3.connect(path)) as db, db:
             for statement in SCHEMA:
+                if statement.startswith('CREATE TABLE thefts('):
+                    continue
                 if version == 1 and statement.startswith("CREATE TABLE inventory("):
                     statement = """CREATE TABLE inventory(
                         identity TEXT, name TEXT, seeds INTEGER,

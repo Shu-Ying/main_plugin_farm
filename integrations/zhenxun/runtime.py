@@ -30,10 +30,13 @@ COMMANDS = {
     "播种":"sow", "收获":"harvest", "铲除":"eradicate",
     "作物加锁":"lock", "作物解锁":"unlock", "出售作物":"sell",
     "农场除虫":"clear_pests", "除虫":"clear_pests", "地块编号":"plot_ids",
+    "偷菜":"steal",
 }
 HELP = (
     "开通农场 [名称]｜我的农场 [高清]｜农场详述 [页码]\n"
     "地块编号 [高清]｜查看当前土地编号及开垦位置\n"
+    "偷菜 @目标｜每日最多5次成功偷取\n"
+    "我的种子/我的作物 [页码] [高清/文字]，默认标准压缩图。\n"
     "种子商店 [页码]｜购买种子 作物 数量｜播种 作物 [数量]\n"
     "收获｜铲除｜农场除虫｜我的种子 [页码]｜我的作物 [页码]\n"
     "作物加锁 作物｜作物解锁 作物｜出售作物 [作物] [数量]\n"
@@ -46,6 +49,10 @@ HELP = (
     "旧版农场数据在首次使用时迁移，绑定当前机器人和平台。"
 )
 ERRORS = {
+    'cannot_steal_self': '不能偷自己的农场。',
+    'different_farm_scope': '只能偷取当前机器人、平台内的农场。',
+    'target_not_registered': '目标尚未开通当前农场。',
+    'steal_daily_limit': '今日成功偷菜已达5次，北京时间零点恢复。',
     "legacy_identity_bound":"旧农场已绑定其他机器人或平台，请联系管理员。",
     "legacy_account_conflict":"新旧农场账号冲突，未覆盖，请联系管理员。",
     "legacy_schema_unsupported":"旧农场数据库结构不兼容，请联系管理员。",
@@ -151,7 +158,7 @@ class Runtime:
 
     async def execute(
         self, action, arguments, *, bot_id, platform, user_id, message_id,
-        display_name="农场玩家", avatar=None,
+        display_name="农场玩家", avatar=None, target_user_id=None,
     ):
         if not self.started:
             return "农场尚未初始化，请检查启动日志。"
@@ -237,6 +244,7 @@ class Runtime:
                 )
             if action in ('crops', 'seeds'):
                 title = '我的作物' if action == 'crops' else '我的种子'
+                mode = args.pop() if args and args[-1] in ('高清', '文字') else ''
                 if len(args) > 1:
                     raise ValueError()
                 try:
@@ -249,10 +257,11 @@ class Runtime:
                     _, pages = warehouse_page(rows, page)
                 except ValueError:
                     return f'页码无效，请发送：{title} 1'
-                if not self.rendering:
+                if not self.rendering or mode == '文字':
                     return warehouse_text(rows, snapshot, action, page, pages)
                 return await self.rendering.warehouse(
                     rows, snapshot, action, page, pages, self.image_format,
+                    mode == '高清',
                 )
             if action == "inventory":
                 if args:
@@ -283,7 +292,15 @@ class Runtime:
                 return picture.content
             if op is None:
                 return "无法取得稳定消息标识，本次写操作未执行。"
-            if action == "register":
+            if action == 'steal':
+                if target_user_id is None:
+                    return '请发送：偷菜 @目标，不支持直接输入QQ号。'
+                if args:
+                    return '请只指定一个偷菜目标，不要附加QQ号或其他文字。'
+                target = Identity(who.deployment, who.realm, who.platform,
+                                  str(target_user_id))
+                receipt = await self.service.steal(who, target, op)
+            elif action == "register":
                 name = " ".join(args) if args else display_name
                 name = " ".join(str(name).split())[:64] or "农场玩家"
                 receipt = await self.service.register(who, name, op)

@@ -72,5 +72,10 @@ class WarehouseTests(unittest.TestCase):
                                        kind, 1, 1)
             with Image.open(BytesIO(content)) as image:
                 self.assertEqual(image.format, 'JPEG')
-                self.assertEqual(image.size, (1024, 1536))
+                self.assertEqual(image.size, (768, 1152))
             self.assertLess(len(content), 500000)
+            high = render_warehouse(renderer, rows, self.snapshot,
+                                    kind, 1, 1, high=True)
+            with Image.open(BytesIO(high)) as image:
+                self.assertEqual(image.size, (1024, 1536))
+            self.assertGreater(len(high), len(content))

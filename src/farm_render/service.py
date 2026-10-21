@@ -118,17 +118,21 @@ class RenderService:
         return await asyncio.shield(task)
 
     async def warehouse(self, rows, snapshot, kind, page, pages,
-                        image_format='AUTO'):
+                        image_format='AUTO', high=False):
         if self._closed:
             raise RuntimeError('Render service closed')
-        key = ('warehouse', rows, snapshot, kind, page, pages, image_format)
+        key = ('warehouse', rows, snapshot, kind, page, pages,
+               image_format, high)
+        cached = self.renderer.results.get(key)
+        if cached is not None:
+            return cached
         task = self._pending.get(key)
         if task is None:
             if len(self._pending) >= self._max_pending:
                 raise RuntimeError('Render queue full')
             task = asyncio.create_task(self._run_function(
                 render_warehouse, self.renderer, rows, snapshot, kind,
-                page, pages, image_format,
+                page, pages, image_format, high,
             ))
             self._pending[key] = task
 
@@ -138,7 +142,9 @@ class RenderService:
                     done.exception()
 
             task.add_done_callback(finished)
-        return await asyncio.shield(task)
+        content = await asyncio.shield(task)
+        self.renderer.results.put(key, content, len(content))
+        return content
 
     async def _run_function(self, function, *args):
         started = perf_counter()

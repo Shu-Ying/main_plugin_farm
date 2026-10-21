@@ -98,6 +98,13 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
             query.assert_awaited_once()
         with Image.open(BytesIO(content)) as image:
             self.assertEqual(image.format, 'JPEG')
+            self.assertEqual(image.size, (768, 1152))
+        high = await self.call('seeds', '1 高清', message=None)
+        with Image.open(BytesIO(high)) as image:
+            self.assertEqual(image.size, (1024, 1536))
+        self.assertIn('胡萝卜（#1） 2粒', await self.call(
+            'seeds', '文字', message=None,
+        ))
         self.assertEqual(before, await self.runtime.service.snapshot(
             self.runtime_identity(),
         ))
@@ -114,6 +121,37 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(text, await self.call('farm', 'my-seed'))
         finally:
             self.runtime.rendering = rendering
+
+    async def test_steal_target_arguments_and_text_receipts(self):
+        from farm_core.domain import Plot
+        await self.call('register')
+        await self.call('register', user_id='2')
+        owner = replace(self.runtime_identity(), user_id='2')
+        plant = self.runtime.service.catalogue.get('胡萝卜')
+        now = self.runtime.service.clock()
+        await self.runtime.service.store.transact(
+            owner, 'fixture', 'fixture', {}, now,
+            lambda repo: repo.save_plot(Plot(1, plant, now)),
+        )
+        self.assertIn('偷菜', await self.call('steal'))
+        before = await self.runtime.service.snapshot(owner)
+        for account in ('1', '2', '9999'):
+            self.assertIn('不支持直接输入QQ号', await self.call(
+                'steal', account, message='numeric-'+account,
+            ))
+        self.assertEqual(await self.runtime.service.snapshot(owner), before)
+        self.assertIn('自己', await self.call('steal', target_user_id='1'))
+        self.assertIn('开通', await self.call('steal', target_user_id='9999'))
+        result = await self.call('steal', message='steal', target_user_id='2')
+        self.assertIsInstance(result, str)
+        self.assertIn('胡萝卜', result)
+        self.assertIn('4/5', result)
+        repeated = await self.call('steal', message='again', target_user_id='2')
+        self.assertIn('本季已偷', repeated)
+        self.assertIn('4/5', repeated)
+        self.assertIn('目标', await self.call(
+            'steal', '2', target_user_id='2', message='invalid',
+        ))
 
     async def test_original_commands_transactions_and_png(self):
         self.assertNotIn("测试农场", self.module.COMMANDS)
@@ -442,6 +480,27 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
                     SimpleNamespace(extract_plain_text=lambda:""),
                 )
                 self.assertTrue(sent)
+                from unittest.mock import AsyncMock
+
+                class Arguments(list):
+                    def extract_plain_text(self):
+                        return ''
+
+                for segment in (
+                    SimpleNamespace(type='at', data={'qq': '123'}),
+                    SimpleNamespace(type='mention_user',
+                                    data={'user_id': '123'}),
+                ):
+                    with patch.object(imported.runtime, 'execute',
+                                      new=AsyncMock(return_value='结果')) as run:
+                        await hooks['commands']['偷菜'](
+                            bot, SimpleNamespace(message_id='steal'),
+                            SimpleNamespace(user=SimpleNamespace(
+                                id='u', name='用户',
+                            )), Arguments([segment]),
+                        )
+                        self.assertEqual(run.await_args.kwargs[
+                            'target_user_id'], '123')
             finally:
                 await hooks["close"][0]()
             self.assertFalse(imported.runtime.started)

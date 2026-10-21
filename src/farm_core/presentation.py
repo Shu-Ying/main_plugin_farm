@@ -4,6 +4,25 @@ from .domain import Receipt, Snapshot
 
 
 def receipt_text(receipt: Receipt) -> str:
+    if receipt.action == 'steal':
+        data = receipt.data
+        items = data['items']
+        lines = [f"偷菜成功：{len(items)}块地，共{data['quantity']}个。"
+                 if items else '本次未偷到作物，不消耗次数。']
+        grouped = {}
+        for item in items:
+            key = (item['plant_id'], item['name'])
+            grouped[key] = grouped.get(key, 0)+item['quantity']
+        lines.extend(f'{name}（#{pid}）×{amount}'
+                     for (pid, name), amount in grouped.items())
+        reasons = {'already_stolen': '本季已偷过',
+                   'protected': '防偷保护', 'not_ripe': '无成熟作物'}
+        notes = [f'{reasons[key]} {count}块'
+                 for key, count in data['skipped'].items() if count]
+        if notes:
+            lines.append('跳过：'+'；'.join(notes))
+        lines.append(f"今日剩余：{data['remaining_attempts']}/5次（北京时间）")
+        return '\n'.join(lines)
     labels = {
         "register": "注册", "buy": "购买", "sow": "播种",
         "harvest": "收获", "eradicate": "铲除",

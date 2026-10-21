@@ -110,15 +110,25 @@ def warehouse_text(rows, snapshot, kind, page, pages):
 
 
 def render_warehouse(renderer, rows, snapshot, kind, page, pages,
-                     image_format='AUTO'):
-    options = RenderOptions(format=image_format, quality=80)
+                     image_format='AUTO', high=False):
+    options = RenderOptions(width=1024 if high else 768,
+                            format=image_format, quality=85 if high else 70)
     codec = options.codec()
+    scale = options.width/1024
+    s = lambda n: round(n*scale)
     canvas = Canvas(renderer.assets.image('webgl/shop-board.png',
-                                         (1024, 1536)))
-    patch = canvas.image.crop((300, 340, 880, 445))
-    canvas.image.paste(patch.resize((824, 930)), (100, 320))
-    canvas.rectangle((105, 322, 919, 1249), '#fff1cf', radius=15)
+                                         (s(1024), s(1536))))
+    patch = canvas.image.crop(tuple(s(n) for n in (300, 340, 880, 445)))
+    canvas.image.paste(patch.resize((s(824), s(930))), (s(100), s(320)))
+
+    def rectangle(box, color, radius):
+        canvas.rectangle(tuple(s(n) for n in box), color, radius=s(radius))
+
+    rectangle((105, 322, 919, 1249), '#fff1cf', 15)
     def text(value, xy, size=26, color='#603817', width=760):
+        size = max(1, s(size))
+        xy = tuple(s(n) for n in xy)
+        width = s(width)
         value = canvas.fit_text(value, renderer.font_path, size, width)
         box = font(renderer.font_path, size).getbbox(value)
         canvas.text((xy[0], xy[1]-box[1]), value,
@@ -136,7 +146,7 @@ def render_warehouse(renderer, rows, snapshot, kind, page, pages,
     for index, row in enumerate(chunk):
         if row.group != group:
             group = row.group
-            canvas.rectangle((123, y, 899, y+43), '#d8e5b6', radius=7)
+            rectangle((123, y, 899, y+43), '#d8e5b6', 7)
             count = sum(r.group == group for r in rows)
             label = f'{group}（{count}种）'
             if group == '已锁定':
@@ -144,12 +154,13 @@ def render_warehouse(renderer, rows, snapshot, kind, page, pages,
             text(label, (140, y+8), 24, '#607d30')
             y += 49
         if index % 2 == 0:
-            canvas.rectangle((123, y, 899, y+55), '#fff8e4', radius=5)
+            rectangle((123, y, 899, y+55), '#fff8e4', 5)
         icon = f'plant/{row.name}/icon.png'
         if icon in renderer.assets.metadata['images']:
             image = renderer.assets.image(icon)
-            image.thumbnail((44, 46), Image.Resampling.LANCZOS)
-            canvas.paste(image, (158-image.width//2, y+27-image.height//2))
+            image.thumbnail((s(44), s(46)), Image.Resampling.LANCZOS)
+            canvas.paste(image, (s(158)-image.width//2,
+                                 s(y+27)-image.height//2))
         else:
             text('?', (149, y+15), 26)
         text(f'#{row.plant_id}', (193, y+19), 21, '#607d30', 82)
@@ -186,6 +197,7 @@ def render_warehouse(renderer, rows, snapshot, kind, page, pages,
     x = round((1024-canvas.measure_text(nav, renderer.font_path, 23))/2)
     text(nav, (x, 1424), 23, width=510)
     content = canvas.encode(codec, options.quality, options.method)
-    logger.info('farm warehouse kind=%s page=%s bytes=%s codec=%s',
-                kind, page, len(content), codec)
+    logger.info('farm warehouse kind=%s page=%s bytes=%s codec=%s width=%s '
+                'quality=%s', kind, page, len(content), codec,
+                options.width, options.quality)
     return content
