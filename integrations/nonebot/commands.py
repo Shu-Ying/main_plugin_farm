@@ -21,6 +21,7 @@ runtime = Runtime(
     data_directory(store.get_plugin_data_dir(), config.farm_data_dir),
     config.farm_font, config.farm_deployment, config.farm_image_format,
     font_setting="FARM_FONT",
+    image_quality=config.farm_image_quality,
 )
 driver.on_startup(runtime.start)
 driver.on_shutdown(runtime.close)

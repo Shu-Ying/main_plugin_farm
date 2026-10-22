@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, conint
 
 
 class Config(BaseModel):
@@ -20,4 +20,8 @@ class Config(BaseModel):
     )
     farm_image_format: Literal["AUTO", "JPEG", "PNG"] = Field(
         "AUTO", description="图片格式，AUTO 优先使用压缩 JPEG",
+    )
+    farm_image_quality: conint(strict=True, ge=1, le=95) = Field(
+        75,
+        description="全部农场图片编码质量；仅我的农场高清时至少85",
     )

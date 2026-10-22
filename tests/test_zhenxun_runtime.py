@@ -99,9 +99,9 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         with Image.open(BytesIO(content)) as image:
             self.assertEqual(image.format, 'JPEG')
             self.assertEqual(image.size, (768, 1152))
-        high = await self.call('seeds', '1 高清', message=None)
-        with Image.open(BytesIO(high)) as image:
-            self.assertEqual(image.size, (1024, 1536))
+        self.assertIn('仅我的农场支持高清', await self.call(
+            'seeds', '1 高清', message=None,
+        ))
         self.assertIn('胡萝卜（#1） 2粒', await self.call(
             'seeds', '文字', message=None,
         ))
@@ -152,6 +152,71 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('目标', await self.call(
             'steal', '2', target_user_id='2', message='invalid',
         ))
+
+    async def test_image_quality_reaches_every_encoder_and_farm_high(self):
+        from io import BytesIO
+        from PIL import Image
+        canvas = importlib.import_module(
+            self.package + '._vendor.farm_render.canvas',
+        ).Canvas
+        original = canvas.encode
+        encoded = []
+
+        def encode(instance, codec, quality=75, method=2):
+            encoded.append(quality)
+            return original(instance, codec, quality, method)
+
+        await self.call('register')
+        quality = 48
+        self.runtime.image_quality_provider = lambda: quality
+        with patch.object(canvas, 'encode', new=encode):
+            for configured in (48, 95):
+                quality = configured
+                for action in ('farm', 'plot_ids', 'details', 'shop',
+                               'seeds', 'crops'):
+                    with self.subTest(quality=quality, action=action):
+                        encoded.clear()
+                        content = await self.call(action, message=None)
+                        self.assertIsInstance(content, bytes)
+                        self.assertTrue(encoded)
+                        self.assertEqual(set(encoded), {quality})
+                encoded.clear()
+                content = await self.call('farm', '高清', message=None)
+                self.assertEqual(set(encoded), {max(85, quality)})
+                with Image.open(BytesIO(content)) as image:
+                    self.assertEqual(image.width, 1536)
+
+    async def test_only_farm_accepts_high_and_warehouse_keeps_text(self):
+        await self.call('register')
+        for action in ('plot_ids', 'details', 'shop', 'seeds', 'crops'):
+            for arguments in ('高清', '1 高清'):
+                with self.subTest(action=action, arguments=arguments):
+                    self.assertIn('仅我的农场支持高清', await self.call(
+                        action, arguments, message=None,
+                    ))
+        for action in ('seeds', 'crops'):
+            self.assertIsInstance(await self.call(action, '1 文字'), str)
+        help_text = await self.call('help')
+        self.assertIn('仅我的农场支持高清', help_text)
+        self.assertNotIn('地块编号 [高清]', help_text)
+        self.assertNotIn('[高清/文字]', help_text)
+
+    async def test_image_quality_validation_and_live_recovery(self):
+        await self.call('register')
+        for invalid in (0, 96, True, 74.5, '75', None):
+            with self.subTest(invalid=invalid):
+                self.runtime.image_quality_provider = lambda: invalid
+                result = await self.call('farm')
+                self.assertIsInstance(result, str)
+                self.assertIn('图片质量配置无效', result)
+        self.assertIsInstance(await self.call('seeds', '文字'), str)
+        self.runtime.image_quality_provider = lambda: 1
+        self.assertIsInstance(await self.call('farm'), bytes)
+        self.runtime.image_quality_provider = lambda: 95
+        self.assertIsInstance(await self.call('farm'), bytes)
+        for invalid in (0, 96, True, 74.5, '75'):
+            with self.assertRaises(ValueError):
+                self.module.Runtime(self.root / 'unused', image_quality=invalid)
 
     async def test_original_commands_transactions_and_png(self):
         self.assertNotIn("测试农场", self.module.COMMANDS)
@@ -233,14 +298,19 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_pest_command_clears_pests_and_preserves_growth(self):
         self.assertEqual(self.module.COMMANDS["农场除虫"], "clear_pests")
-        self.assertIn("每只虫", await self.call("help"))
+        help_text = await self.call("help")
+        self.assertIn("每只虫", help_text)
+        self.assertIn("间隔至少2小时", help_text)
         self.runtime.service.clock = lambda: 1000
         await self.call("register")
         await self.call("buy", "白萝卜 1", "buy")
         await self.call("sow", "白萝卜 1", "sow")
         self.assertIn("没有虫", await self.call("clear_pests", message="empty"))
         duration = self.runtime.service.catalogue.get("白萝卜").growth_seconds
-        self.runtime.service.clock = lambda: 1000 + max(3600, (duration+3)//4)
+        first_pest_at = 1000 + max(7200, (duration + 1) // 2)
+        self.runtime.service.clock = lambda: first_pest_at - 1
+        self.assertNotIn("虫子1只", await self.call("inventory"))
+        self.runtime.service.clock = lambda: first_pest_at
         self.assertIn("虫子1只", await self.call("inventory"))
         first = await self.call("clear_pests", message="clear")
         self.assertIn("除虫已完成", first)
@@ -456,8 +526,15 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         platform = ModuleType("zhenxun.utils.platform")
         platform.PlatformUtils = SimpleNamespace()
         config = ModuleType("zhenxun.configs.config")
+        quality_values = {'value': 49}
         config.Config = SimpleNamespace(
-            get=lambda module: SimpleNamespace(configs={}),
+            get=lambda module: SimpleNamespace(
+                configs={}, get=lambda key, default, **kwargs: (
+                    quality_values['value'] if not kwargs['build_model']
+                    else int(quality_values['value'])
+                ),
+            ),
+            get_config=lambda *args, **kwargs: int(quality_values['value']),
             _simple_data={},
         )
         modules = {m.__name__:m for m in (
@@ -465,6 +542,14 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         )}
         with patch.dict(sys.modules, modules):
             imported = importlib.import_module(self.package + ".commands")
+            self.assertEqual(imported.runtime.image_quality_provider(), 49)
+            quality_values['value'] = 91
+            self.assertEqual(imported.runtime.image_quality_provider(), 91)
+            quality_values['value'] = 74.5
+            self.assertEqual(imported.runtime.image_quality_provider(), 74.5)
+            quality_values['value'] = True
+            self.assertIs(imported.runtime.image_quality_provider(), True)
+            quality_values['value'] = 75
             self.assertEqual(imported.runtime.data_dir,
                              (self.root / 'farm_db').resolve())
             self.assertEqual(set(hooks["commands"]), set(self.module.COMMANDS))

@@ -117,6 +117,11 @@ class NoneBotPackageTests(unittest.TestCase):
         commit = next(data for method, path, data in calls
                       if path == "git/commits")
         self.assertEqual(commit["parents"], ["existing"])
+        self.assertEqual(commit["message"], (
+            manifest["source"]["message"] + "\n\n"
+            + "Farm-Source-Commit: " + manifest["source"]["commit"] + "\n"
+            + "Farm-Version: " + manifest["version"]
+        ))
         self.assertIn(("PATCH", "git/refs/heads/main", {
             "sha": "generated", "force": False,
         }), calls)

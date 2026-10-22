@@ -9,6 +9,10 @@
 向固定仓库 `main` 普通提交完整生成树，保留历史并检查分支并发变更。
 生成树会替换目标分支的当前文件集合，首次同步前应审查输出内容。
 
+构建清单记录对应源提交的完整说明；两套同步脚本沿用该说明，并附加
+`Farm-Source-Commit` 和 `Farm-Version` 追溯信息。发布时不读取新的 HEAD。
+默认 dry-run 报告也会显示最终提交说明。旧产物缺少源说明时需重新构建。
+
 NoneBot 既有 `publish.yaml` 已从远端读取，生成模板继续使用 `v*`
 标签触发及 `PYPI_TOKEN`。主仓库的同步任务沿用真寻 environment
 `zhenxun-preview` 和 `FARM_RELEASE_TOKEN`，普通同步不会发布 PyPI。

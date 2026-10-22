@@ -256,6 +256,12 @@ class ZhenxunPackageTests(unittest.TestCase):
         commit = next(data for method, path, data in calls
                       if method == "POST" and path == "git/commits")
         self.assertEqual(commit["parents"], ["existing"])
+        manifest = json.loads(read_package(package)["FARM-MANIFEST.json"])
+        self.assertEqual(commit["message"], (
+            manifest["source"]["message"] + "\n\n"
+            + "Farm-Source-Commit: " + manifest["source"]["commit"] + "\n"
+            + "Farm-Version: " + manifest["version"]
+        ))
         self.assertIn(("PATCH", "git/refs/heads/main", {
             "sha": "created", "force": False,
         }), calls)

@@ -8,6 +8,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from verify_zhenxun import read_package, verify_files
+from release_metadata import commit_message
 
 REPOSITORY = "Shu-Ying/zhenxun_plugin_farm"
 BRANCH = "main"
@@ -39,8 +40,10 @@ def github(method, path, payload, token, allow_missing=False):
 def publish(package, confirmed=False, request=None):
     files = read_package(package)
     manifest = verify_files(files)
+    message = commit_message(manifest)
     result = {"repository": REPOSITORY, "branch": BRANCH,
-              "version": manifest["version"], "published": False}
+              "version": manifest["version"], "message": message,
+              "published": False}
     if not confirmed:
         return result
     if manifest["source"]["dirty"]:
@@ -75,8 +78,7 @@ def publish(package, confirmed=False, request=None):
                      "sha":blob["sha"]})
     generated = call("POST", "git/trees", {"tree":tree})
     commit = call("POST", "git/commits", {
-        "message": f"Generate farm preview {manifest['version']} "
-                   f"from {manifest['source']['commit']}",
+        "message": message,
         "tree": generated["sha"], "parents": [parent] if parent else [],
     })
     if parent:

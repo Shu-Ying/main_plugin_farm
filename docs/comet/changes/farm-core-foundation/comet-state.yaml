@@ -1,12 +1,12 @@
 schema: comet.native.v4
 name: farm-core-foundation
 language: en
-phase: verify
-status: await-user
-state_version: 36
+phase: build
+status: active
+state_version: 39
 brief: brief.md
 document_constraints_version: 3
-shape_confirmation_hash: d1bc1489c0aa3d9a28ff7a24c62aa4bcb4e0a953955d265bcf06f802252cec36
+shape_confirmation_hash: 066f3825ae83e04c24cb7018a75d217a2aaae9a8a4cba1c435eecc776de4a90d
 spec_changes:
   - capability: farm-core
     operation: create
@@ -23,422 +23,126 @@ workspace:
   target_branch: main
   finish: null
 loop:
-  stage: await-user
-  goal_cycle: 5
-  iteration: 5
-  attempt: 1
+  stage: building
+  goal_cycle: 6
+  iteration: 1
+  attempt: 0
   retry_epoch: 0
-  failed_iteration_count: 1
+  failed_iteration_count: 0
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: confirm-skill-coordinated-pass
+  next_action: submit-builder-candidate
 acceptance:
   - id: A1
     source: brief.md
-    text: "A1: 旧基线 827 文件校验继续通过；新核心不导入三框架、无导入副作用， 可从安装包或源码独立运行，核心不通过路径引用 legacy。"
-    result: passed
-    reason:
-      text: 正式all-offline基线校验827文件通过，独立导入/安装测试通过；源码分层无框架依赖且不经legacy运行。
-      truncated: false
+    text: "A19: 默认质量75，整数1和95有效，0、96、布尔值及非整数拒绝； 配置应用到所有图片编码，缓存区分质量。仅我的农场接受高清，
+      质量不低于85及配置值；其他查询拒绝高清，仓库分页、文字继续可用。 真寻注册网页配置并在请求时读取，NoneBot读取启动配置；帮助与说明一致。"
+    result: pending
+    reason: null
   - id: A2
     source: brief.md
-    text: "A2: 可复现导出 202 条作物配置，名称和必要数值对应源静态数据库； 本地加载支持格式校验，坏数据明确失败，不访问网络。"
-    result: passed
-    reason:
-      text: 正式目录可复现校验与源202行对照、损坏输入拒绝测试通过。
-      truncated: false
+    text: "A1: 旧基线 827 文件校验继续通过；新核心不导入三框架、无导入副作用， 可从安装包或源码独立运行，核心不通过路径引用 legacy。"
+    result: pending
+    reason: null
   - id: A3
     source: brief.md
-    text: "A3: 注册立即可查询 500 农场币、0 点券、0 经验、3 块空地； 重复注册不重复赠送；不同显式作用域不串号。"
-    result: passed
-    reason:
-      text: 注册默认资产、三空地、重复领取和作用域隔离正式测试通过；repository.register只首次赠送。
-      truncated: false
+    text: "A2: 可复现导出 202 条作物配置，名称和必要数值对应源静态数据库； 本地加载支持格式校验，坏数据明确失败，不访问网络。"
+    result: pending
+    reason: null
   - id: A4
+    source: brief.md
+    text: "A3: 注册立即可查询 500 农场币、0 点券、0 经验、3 块空地； 重复注册不重复赠送；不同显式作用域不串号。"
+    result: pending
+    reason: null
+  - id: A5
     source: brief.md
     text: "A4: 购买到播种全过程扣款、入库、耗种和地块改变正确；0、负数、 布尔值、超大数量、余额/库存不足、等级不足和不存在对象明确失败，
       不留下部分写入。"
-    result: passed
-    reason:
-      text: 购买/播种在单事务中完成；非法整数、资源/等级不足、对象不存在和失败无部分写入正式测试通过。
-      truncated: false
-  - id: A5
+    result: pending
+    reason: null
+  - id: A6
     source: brief.md
     text: "A5: 未成熟不能收获；成熟后只增加本次产量/经验；历史经验 100、 本次获得20时为120；多地加成逐块计算且交换顺序不改变总和；
       多季次数及枯萎/铲除遵守保存的规则与可注入时钟。"
-    result: passed
-    reason:
-      text: 成熟边界、多季、逐地加成及100+20=120正式测试通过；application.harvest只累加本次经验。
-      truncated: false
-  - id: A6
+    result: pending
+    reason: null
+  - id: A7
     source: brief.md
     text: "A6: 出售收益只增加一次，例如余额100、收益20后为120； 锁定同时约束指定与全部出售；返回结构化真实余额及安全文本，
       不发生旧版模板参数缺失。"
-    result: passed
-    reason:
-      text: 指定/全部出售保护锁定且收益只增加一次；正式回归覆盖真实余额和安全文本。
-      truncated: false
-  - id: A7
+    result: pending
+    reason: null
+  - id: A8
     source: brief.md
     text: "A7: 模拟交易中途异常时余额、库存、地块及流水整体回滚； 同一操作标识重试返回原结果、参数冲突拒绝；并发写入不超卖、
       不重复领取，不吞数据库故障伪装成功；重启后数据可读。"
-    result: passed
-    reason:
-      text: storage显式事务与幂等指纹；故障回滚、并发超卖/重复领取、重启恢复和取消重放正式检查通过。
-      truncated: false
-  - id: A8
+    result: pending
+    reason: null
+  - id: A9
     source: brief.md
     text: "A8: 提供可执行的离线测试、运行入口和使用说明，保留真实宿主、 真实库迁移及远程发布未验证的说明；文档记录已实现范围和剩余项。"
-    result: passed
-    reason:
-      text: 完整离线入口与文档存在，真实宿主/旧库迁移/远端操作边界已记录；当前用户测试不扩大历史自动验证结论。
-      truncated: false
-  - id: A9
+    result: pending
+    reason: null
+  - id: A10
     source: brief.md
     text: "A9: 独立图片工具支持透明合成、缩放、裁剪、文本测量/省略和三格式编码； 渲染不导入框架、不联网，核心保持无 Pillow
       依赖；安装包含所需素材。"
-    result: passed
-    reason:
-      text: canvas透明合成/裁剪/文本/三编码、wheel独立运行正式测试通过；新面板两素材离线导出并校验。
-      truncated: false
-  - id: A10
-    source: brief.md
-    text: "A10: 从一次快照绘制空地、生长、成熟、再生长、枯萎及锁定地块， 使用统一时间、旧布局和正确偏移；输出普通/高清可解码图片。"
-    result: passed
-    reason:
-      text: 一次快照与统一now绘图、各阶段/尺寸正式测试通过；源码与旧drawUserInfo对照恢复userInfo/frame、140x150头像和信息内容，按用户选择校正底图槽位；样图目视确认无框外货币。
-      truncated: false
+    result: pending
+    reason: null
   - id: A11
     source: brief.md
-    text: "A11: 小画布从开始按目标尺寸绘制；素材和结果缓存有内存上限， 共享素材不被污染；阶段/成熟边界、账户、头像及作用域变化不复用旧图。"
-    result: passed
-    reason:
-      text: 目标尺寸绘制、LRU预算/复制保护、阶段/账户/头像/身份缓存失效正式测试通过；新增经验边界和经验变化失效覆盖本轮面板。
-      truncated: false
+    text: "A10: 从一次快照绘制空地、生长、成熟、再生长、枯萎及锁定地块， 使用统一时间、旧布局和正确偏移；输出普通/高清可解码图片。"
+    result: pending
+    reason: null
   - id: A12
     source: brief.md
-    text: "A12: 合成和编码在后台执行且限制并发，相同请求合并；取消和异常 不提前释放运行名额、不泄漏后台任务；记录耗时、尺寸和缓存状态。"
-    result: passed
-    reason:
-      text: RenderService后台线程/信号量/单任务合并/取消保护/关闭排空实现与正式并发测试一致，日志记录时长尺寸缓存。
-      truncated: false
+    text: "A11: 小画布从开始按目标尺寸绘制；素材和结果缓存有内存上限， 共享素材不被污染；阶段/成熟边界、账户、头像及作用域变化不复用旧图。"
+    result: pending
+    reason: null
   - id: A13
     source: brief.md
-    text: "A13: 离线生成农场样例、对比尺寸/编码与冷暖缓存，保存测量报告和 接入文档；验证旧基线及原有核心测试，明确尚未接入真实消息平台。"
-    result: passed
-    reason:
-      text: 离线样例与本机性能报告完整；恢复面板报告675素材、三编码冷暖数据，明确未测低配上传；全回归与基线通过。
-      truncated: false
+    text: "A12: 合成和编码在后台执行且限制并发，相同请求合并；取消和异常 不提前释放运行名额、不泄漏后台任务；记录耗时、尺寸和缓存状态。"
+    result: pending
+    reason: null
   - id: A14
+    source: brief.md
+    text: "A13: 离线生成农场样例、对比尺寸/编码与冷暖缓存，保存测量报告和 接入文档；验证旧基线及原有核心测试，明确尚未接入真实消息平台。"
+    result: pending
+    reason: null
+  - id: A15
     source: brief.md
     text: "A14: 真寻接入沿用原指令提供帮助、注册、我的农场、仓库、购买、 播种、收获、铲除、锁定/解锁、出售；稳定事件幂等标识、身份隔离，
       独立测试数据库与启动/关闭生命周期；缺字体时给出配置提示。"
-    result: passed
-    reason:
-      text: 真寻原指令、稳定事件ID、身份隔离与独立库生命周期模拟测试通过；默认FONT_PATH在适配层，显式覆盖与缺失提示有测试。
-      truncated: false
-  - id: A15
+    result: pending
+    reason: null
+  - id: A16
     source: brief.md
     text: "A15: 白名单构建完整真寻插件ZIP，包含私有共享模块、静态素材、 依赖、许可证及来源/文件哈希；不含其他适配、legacy、测试或玩家数据，
       源提交/脏工作区明确记录，相同输入可复现，构建不修改开发源码。"
-    result: passed
-    reason:
-      text: 白名单构建私有模块/素材/许可证/来源哈希，固定ZIP元数据，正式可复现测试通过；最终preview.3的30文件校验且renderer与源码一致。
-      truncated: false
-  - id: A16
+    result: pending
+    reason: null
+  - id: A17
     source: brief.md
     text: "A16: 离线校验ZIP内容、导入和命令路由；安装脚本拒绝路径穿越、 哈希错误和已有目标，不覆盖旧插件或玩家数据；不自动启动真实机器人。"
-    result: passed
-    reason:
-      text: 安装先校验、已有目标拒绝、路径穿越/哈希/符号链接等正式边界测试通过；最终安装目录与ZIP逐文件一致，不启动宿主。
-      truncated: false
-  - id: A17
+    result: pending
+    reason: null
+  - id: A18
     source: brief.md
     text: "A17: 主仓库工作流完成检查/构建/上传测试附件；可选手动发布只面向 固定真寻仓库的专用测试分支，默认不发布、不改main、不force，凭据
       由Secrets提供且不进入产物；发布仓库收到生成内容后可独立校验。"
-    result: passed
-    reason:
-      text: 工作流触发/只读权限/矩阵/附件与专用手动发布源码核对，正式守卫通过；固定farm-preview且非force，默认离线，冲突及默认分支拒绝模拟测试通过。
-      truncated: false
-  - id: A18
+    result: pending
+    reason: null
+  - id: A19
     source: brief.md
     text: "A18: 本机离线验证打包、边界与安装行为；CI覆盖Windows/Linux及
       Pillow10.4和当前支持版本，记录真实宿主、GitHub运行未验证边界；
       提供下载、字体/数据路径、测试命令、回退/卸载和Secrets配置说明。"
-    result: passed
-    reason:
-      text: 完整60项与Pillow10.4的28项本机正式检查通过，工作流包含Windows/Linux和10.4/12.3；说明记录字体/数据/安装/回退/Secrets及真实消息和远端运行限制。
-      truncated: false
-builder_handoff:
-  candidate_id: f7644c08-b105-472c-9e92-4e28224fa080
-  identity_provider: skill-coordinated
-  builder_execution_ref: skill-coordinated:builder:90d9bf58-287b-4ac9-9c39-e97c23b3bc86
-  iteration: 5
-  summary:
-    text: 恢复旧版用户信息底图、头像框、头像尺寸及昵称/经验/等级/币种字段；用户确认按原底图修正旧坐标错位。经验口径兼容旧版、点券为真实余额。补齐两张原素材，目标尺寸LRU、一次快照与异步限流均保留。15项定向绘图测试通过，已目视核对最新样图并构建preview.3。
-      完整检查发现一处81字符行宽违规，已拆行；3项打包检查通过，运行完整正式复查。
-    truncated: false
-  addressed_acceptance_ids:
-    - A1
-    - A2
-    - A3
-    - A4
-    - A5
-    - A6
-    - A7
-    - A8
-    - A9
-    - A10
-    - A11
-    - A12
-    - A13
-    - A14
-    - A15
-    - A16
-    - A17
-    - A18
-  acceptance_review:
-    - id: A1
-      status: implemented-with-evidence
-      evidence:
-        - scripts/check_baseline.py
-        - tests/test_packaging.py
-        - src/farm_core/__init__.py
-      note: 已有实现保留并检查关联源码，完整回归列入本轮Runtime计划。
-    - id: A2
-      status: implemented-with-evidence
-      evidence:
-        - scripts/export_catalogue.py
-        - tests/test_domain.py
-      note: 已有实现保留并检查关联源码，完整回归列入本轮Runtime计划。
-    - id: A3
-      status: implemented-with-evidence
-      evidence:
-        - tests/test_transactions.py
-        - src/farm_core/application.py
-      note: 已有实现保留并检查关联源码，完整回归列入本轮Runtime计划。
-    - id: A4
-      status: implemented-with-evidence
-      evidence:
-        - tests/test_transactions.py
-        - src/farm_core/application.py
-      note: 已有实现保留并检查关联源码，完整回归列入本轮Runtime计划。
-    - id: A5
-      status: implemented-with-evidence
-      evidence:
-        - tests/test_domain.py
-        - tests/test_transactions.py
-      note: 已有实现保留并检查关联源码，完整回归列入本轮Runtime计划。
-    - id: A6
-      status: implemented-with-evidence
-      evidence:
-        - tests/test_transactions.py
-        - src/farm_core/presentation.py
-      note: 已有实现保留并检查关联源码，完整回归列入本轮Runtime计划。
-    - id: A7
-      status: implemented-with-evidence
-      evidence:
-        - tests/test_transactions.py
-        - src/farm_core/storage.py
-      note: 已有实现保留并检查关联源码，完整回归列入本轮Runtime计划。
-    - id: A8
-      status: implemented-with-evidence
-      evidence:
-        - README.md
-        - docs/09-foundation.md
-        - scripts/verify_foundation.py
-      note: 已有实现保留并检查关联源码，完整回归列入本轮Runtime计划。
-    - id: A9
-      status: implemented-with-evidence
-      evidence:
-        - src/farm_render/canvas.py
-        - tests/test_render.py
-        - tests/test_packaging.py
-      note: 新实现对应已确认规格，定向测试和离线样例可复核。
-    - id: A10
-      status: implemented-with-evidence
-      evidence:
-        - src/farm_render/layout.py
-        - src/farm_render/renderer.py
-        - tests/test_render.py
-        - tests/test_render.py::test_legacy_panel_assets_avatar_size_and_layer_order
-        - tests/test_render.py::test_legacy_panel_fields_progress_and_level_boundaries
-        - docs/render-panel-restored-benchmark.json
-      note: 恢复原版面板素材和信息，按用户确认校正旧坐标；15项渲染定向测试与样图核对通过，完整回归交Runtime。
-    - id: A11
-      status: implemented-with-evidence
-      evidence:
-        - src/farm_render/assets.py
-        - src/farm_render/renderer.py
-        - tests/test_render.py
-        - tests/test_render.py::test_legacy_panel_assets_avatar_size_and_layer_order
-        - tests/test_render.py::test_legacy_panel_fields_progress_and_level_boundaries
-        - docs/render-panel-restored-benchmark.json
-      note: 恢复原版面板素材和信息，按用户确认校正旧坐标；15项渲染定向测试与样图核对通过，完整回归交Runtime。
-    - id: A12
-      status: implemented-with-evidence
-      evidence:
-        - src/farm_render/service.py
-        - tests/test_render.py
-      note: 新实现对应已确认规格，定向测试和离线样例可复核。
-    - id: A13
-      status: implemented-with-evidence
-      evidence:
-        - scripts/render_demo.py
-        - docs/10-rendering.md
-        - docs/render-benchmark.json
-        - tests/test_render.py::test_legacy_panel_assets_avatar_size_and_layer_order
-        - tests/test_render.py::test_legacy_panel_fields_progress_and_level_boundaries
-        - docs/render-panel-restored-benchmark.json
-      note: 恢复原版面板素材和信息，按用户确认校正旧坐标；15项渲染定向测试与样图核对通过，完整回归交Runtime。
-    - id: A14
-      status: implemented-with-evidence
-      evidence:
-        - integrations/zhenxun/runtime.py
-        - integrations/zhenxun/commands.py
-        - tests/test_zhenxun_runtime.py
-        - tests/test_zhenxun_runtime.py::test_insufficient_funds_has_chinese_message_and_no_debit
-      note: 按用户最终选择沿用原指令并保留独立测试数据；定向检查通过，完整与最低依赖检查纳入Runtime计划。
-    - id: A15
-      status: implemented-with-evidence
-      evidence:
-        - scripts/build_zhenxun.py
-        - tests/test_zhenxun_package.py
-      note: 按用户最终选择沿用原指令并保留独立测试数据；定向检查通过，完整与最低依赖检查纳入Runtime计划。
-    - id: A16
-      status: implemented-with-evidence
-      evidence:
-        - scripts/verify_zhenxun.py
-        - scripts/install_zhenxun.py
-        - tests/test_zhenxun_package.py
-      note: 按用户最终选择沿用原指令并保留独立测试数据；定向检查通过，完整与最低依赖检查纳入Runtime计划。
-    - id: A17
-      status: implemented-with-evidence
-      evidence:
-        - .github/workflows/zhenxun-preview.yml
-        - release/zhenxun/verify.yml
-        - scripts/publish_zhenxun.py
-        - scripts/check_workflows.py
-        - tests/test_zhenxun_package.py
-      note: 按用户最终选择沿用原指令并保留独立测试数据；定向检查通过，完整与最低依赖检查纳入Runtime计划。
-    - id: A18
-      status: implemented-with-evidence
-      evidence:
-        - docs/11-zhenxun-preview.md
-        - scripts/check_pillow_compat.py
-        - tests/test_zhenxun_runtime.py
-      note: 按用户最终选择沿用原指令并保留独立测试数据；定向检查通过，完整与最低依赖检查纳入Runtime计划。
-  checks:
-    - name:
-        text: render-panel-focused
-        truncated: false
-      result: passed
-      note:
-        text: 15 tests including original asset layering, avatar geometry, level
-          boundaries and experience cache invalidation.
-        truncated: false
-    - name:
-        text: visual-panel-and-package
-        truncated: false
-      result: passed
-      note:
-        text: Latest 1536 JPEG visually inspected; preview.3 built and package verified.
-        truncated: false
-    - name:
-        text: packaging-focused
-        truncated: false
-      result: passed
-      note:
-        text: 3 packaging tests passed after wrapping overlong renderer line; runtime
-          full first attempt failed only line-width gate.
-        truncated: false
-  checks_truncated: false
-  known_limits:
-    - text: 真实聊天需重启后由用户测试；不自动重启，不访问真实玩家库。
-      truncated: false
-    - text: 菜单/网页不显示仍未解决；Linux/GitHub未实跑；旧缺图455项未补。
-      truncated: false
-    - text: 恢复旧经验分母为下一等级累计门槛，未改变数值规则。
-      truncated: false
-  known_limits_truncated: false
-  review: null
-  submitted_at: 2026-10-16T02:27:25.960Z
-blockers:
-  - owner: user
-    reason:
-      text: The generic Skill bridge cannot prove an independent Verifier execution;
-        user confirmation is required before Archive.
-      truncated: false
-    acceptance_ids: []
-    resolution_action: await-user
-verification:
-  candidate_id: f7644c08-b105-472c-9e92-4e28224fa080
-  identity_provider: skill-coordinated
-  verifier_execution_ref: skill-coordinated:verifier:1c253cb5-527d-407b-9273-2e206149f47d
-  iteration: 5
-  attempt: 1
-  assurance: skill-coordinated
-  verdict: pass
-  checks:
-    - id: all-offline
-      name:
-        text: Full offline
-        truncated: false
-      argv_display:
-        - text: scripts/verify_foundation.py
-          truncated: false
-      argv_truncated: false
-      cwd_ref: .
-      status: passed
-      exit_code: 0
-      duration_ms: 24375
-    - id: pillow-10-compat
-      name:
-        text: Pillow floor
-        truncated: false
-      argv_display:
-        - text: scripts/check_pillow_compat.py
-          truncated: false
-        - text: --dependency-path
-          truncated: false
-        - text: .release-cache/pillow10
-          truncated: false
-      argv_truncated: false
-      cwd_ref: .
-      status: passed
-      exit_code: 0
-      duration_ms: 15112
-    - id: workflow-guards
-      name:
-        text: Workflows
-        truncated: false
-      argv_display:
-        - text: scripts/check_workflows.py
-          truncated: false
-        - text: --dependency-path
-          truncated: false
-        - text: .release-cache/qa
-          truncated: false
-      argv_truncated: false
-      cwd_ref: .
-      status: passed
-      exit_code: 0
-      duration_ms: 95
-  summary:
-    text: 独立只读核对全部A1-A18、完整brief/三份Spec、相关实现与测试及本候选Runtime绑定。复用60项完整检查、Pillow10.4下28项及工作流守卫，均退出码0；未重跑完整套件。原面板底图/头像框/头像尺寸和信息已恢复，用户授权的槽位坐标校正经源码与1536样图核验；preview.3最终ZIP30文件与当前安装目录逐文件相同，renderer匹配源码。未修改实现/正式规格、操作远端、真实玩家库或启动宿主。
-    truncated: false
-  risks:
-    - text: 真实聊天须用户重启后验证本轮面板，未自动启动机器人；菜单/网页不显示仍待独立排查。
-      truncated: false
-    - text: Linux和GitHub工作流/远端发布未实跑；455个旧作物阶段缺图仍按既定占位处理。
-      truncated: false
-    - text: 图索引为旧generation且新文件未跟踪；本轮以直接源读取与正式Runtime检查为准。
-      truncated: false
-    - text: 经验条沿用旧版当前级经验/下级累计门槛口径，仅校正坐标；不是重新设计升级规则。
-      truncated: false
-  risks_truncated: false
-  completed_at: 2026-10-16T02:31:02.032Z
+    result: pending
+    reason: null
+builder_handoff: null
+blockers: []
+verification: null
 history:
   - goal_cycle: 1
     iteration: 1
@@ -567,6 +271,15 @@ history:
       text: 独立只读核对全部A1-A18、完整brief/三份Spec、相关实现与测试及本候选Runtime绑定。复用60项完整检查、Pillow10.4下28项及工作流守卫，均退出码0；未重跑完整套件。原面板底图/头像框/头像尺寸和信息已恢复，用户授权的槽位坐标校正经源码与1536样图核验；preview.3最终ZIP30文件与当前安装目录逐文件相同，renderer匹配源码。未修改实现/正式规格、操作远端、真实玩家库或启动宿主。
       truncated: false
     completed_at: 2026-10-16T02:31:02.032Z
+  - goal_cycle: 5
+    iteration: 5
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: 用户明确要求执行统一图片质量配置，默认75、范围1至95，仅我的农场允许高清覆盖；其他图片禁止高清，保留仓库文字和分页。修订用户可见要求。
+      truncated: false
+    completed_at: 2026-10-22T09:37:42.325Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
@@ -577,7 +290,7 @@ history_overflow:
     blocked: 0
     execution-error: 0
     recovery: 0
-verification_result: pass
-verification_report: verification.md
+verification_result: pending
+verification_report: null
 archived: false
 created_at: 2026-10-15T06:34:33.214Z

@@ -17,9 +17,11 @@ def source_identity(root):
         return subprocess.check_output(
             ["git", *args], cwd=root, text=True, encoding="utf-8",
         ).strip()
+    commit = git("rev-parse", "HEAD")
     return {
         "repository": "https://github.com/Shu-Ying/main_plugin_farm.git",
-        "commit": git("rev-parse", "HEAD"),
+        "commit": commit,
+        "message": git("show", "-s", "--format=%B", commit),
         "dirty": bool(git("status", "--porcelain", "--untracked-files=normal")),
     }
 
