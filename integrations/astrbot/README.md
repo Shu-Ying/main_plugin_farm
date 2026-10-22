@@ -33,6 +33,11 @@ Windows双击主仓库根目录的`build_astrbot.cmd`，成功后控制台打印
 真寻账号。缺少稳定消息ID时拒绝写操作。字体不可用时尽可能退回文字。
 本地模拟和ZIP校验不等于真实平台发图成功，需要部署者实际验证。
 
+QQ/OneBot（aiocqhttp）图片查询会读取发送者的腾讯头像，用于我的农场、
+农场详述和地块编号。头像请求最多等待2秒、限制2MiB，成功缓存5分钟，
+失败缓存30秒，最多缓存16项；失败时仍使用默认头像。不记录头像URL或
+QQ号。其他平台暂用默认头像，不将其用户ID当作QQ号查询。
+
 官方接口参考：
 [插件入口](https://docs.astrbot.app/en/dev/star/guides/simple.html)、
 [插件配置](https://docs.astrbot.app/en/dev/star/guides/plugin-config.html)。

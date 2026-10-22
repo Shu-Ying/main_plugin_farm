@@ -7,7 +7,7 @@ import sys
 import tempfile
 from types import ModuleType, SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -115,7 +115,7 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
                         return 'aiocqhttp'
 
                     def get_sender_id(self):
-                        return 'player'
+                        return '123456'
 
                     def get_sender_name(self):
                         return '离线测试'
@@ -139,14 +139,37 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
                 again = await call('开通农场')
                 self.assertIsInstance(again, str)
                 self.assertIn('开通农场', await call('我的种子', 'bot-b'))
-                result = await call('我的农场 高清')
                 from io import BytesIO
                 from PIL import Image
+                avatar_buffer = BytesIO()
+                Image.new('RGB', (64, 64), '#ee2222').save(
+                    avatar_buffer, format='PNG',
+                )
+                avatar_bytes = avatar_buffer.getvalue()
+                with patch.object(plugin._avatars, 'get', new=AsyncMock(
+                        return_value=avatar_bytes)) as avatar_get:
+                    with patch.object(plugin.runtime, 'execute',
+                                      wraps=plugin.runtime.execute) as execute:
+                        result = await call('我的农场 高清')
+                        self.assertEqual(execute.call_args.kwargs['avatar'],
+                                         avatar_bytes)
+                        await call('农场详述')
+                        await call('地块编号')
+                        await call('我的种子 文字')
+                        self.assertIsNone(execute.call_args.kwargs['avatar'])
+                    self.assertEqual(avatar_get.await_count, 3)
+                    avatar_get.assert_awaited_with('aiocqhttp', '123456')
                 with Image.open(BytesIO(result[0])) as image:
                     self.assertEqual(image.width, 1536)
+                    red, green, blue = image.getpixel((70, 70))[:3]
+                    self.assertGreater(red, 180)
+                    self.assertLess(green, 90)
+                    self.assertLess(blue, 90)
                 self.assertIn('仅我的农场', await call('我的种子 高清'))
                 self.assertIn('暂无种子', await call('我的种子 文字'))
-                self.assertTrue((self.root / 'plugin-data/farm.sqlite3').is_file())
+                self.assertTrue(
+                    (self.root / 'plugin-data/farm.sqlite3').is_file(),
+                )
                 await plugin.terminate()
                 self.assertFalse(plugin.runtime.started)
             finally:

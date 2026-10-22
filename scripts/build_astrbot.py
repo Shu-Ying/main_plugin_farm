@@ -27,11 +27,16 @@ def build(root, output):
                  '_version.py', 'version.txt', 'LICENSE',
              )}
     source = root / 'integrations/astrbot'
-    for name in ('main.py', '_conf_schema.json', 'requirements.txt'):
+    for name in ('main.py', 'avatars.py', '_conf_schema.json',
+                 'requirements.txt'):
         files[name] = (source / name).read_bytes()
     files['README.md'] = (source / 'README.md').read_bytes()
-    files['runtime.py'] = (root / 'integrations/zhenxun/runtime.py').read_bytes()
-    files['verify_package.py'] = (root / 'scripts/verify_astrbot.py').read_bytes()
+    files['runtime.py'] = (
+        root / 'integrations/zhenxun/runtime.py'
+    ).read_bytes()
+    files['verify_package.py'] = (
+        root / 'scripts/verify_astrbot.py'
+    ).read_bytes()
     # JSON是YAML的子集；标准库即可生成AstrBot可读的metadata.yaml。
     files['metadata.yaml'] = (json.dumps({
         'name': ROOT_NAME, 'display_name': '农场',

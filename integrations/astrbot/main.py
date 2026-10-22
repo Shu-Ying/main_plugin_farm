@@ -10,6 +10,7 @@ from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.message_components import At, Image
 from astrbot.api.star import Context, Star, StarTools
 
+from .avatars import AvatarCache
 from .runtime import COMMANDS, Runtime
 
 
@@ -22,6 +23,7 @@ class FarmPlugin(Star):
         self.config = config
         self._lifecycle_lock = asyncio.Lock()
         self._closed = False
+        self._avatars = AvatarCache()
         configured = config.get('data_dir', '')
         data_dir = (Path(configured).expanduser() if configured else
                     StarTools.get_data_dir('astrbot_plugin_farm'))
@@ -66,12 +68,17 @@ class FarmPlugin(Star):
             yield event.plain_result('无法取得稳定的平台或用户标识，未执行。')
             return
         bot_id = json.dumps([str(platform_id), str(event.get_self_id())])
+        avatar = None
+        if action in ('farm', 'details', 'plot_ids') and self.runtime.rendering:
+            avatar = await self._avatars.get(
+                event.get_platform_name(), event.get_sender_id(),
+            )
         response = await self.runtime.execute(
             action, arguments, bot_id=bot_id,
             platform=event.get_platform_name(), user_id=event.get_sender_id(),
             message_id=getattr(event.message_obj, 'message_id', None),
             display_name=event.get_sender_name() or '农场玩家',
-            target_user_id=target,
+            target_user_id=target, avatar=avatar,
         )
         if isinstance(response, bytes):
             yield event.chain_result([Image.fromBytes(response)])
@@ -83,5 +90,6 @@ class FarmPlugin(Star):
             if self._closed:
                 return
             self._closed = True
+            await self._avatars.close()
             await self.runtime.close()
             logger.info('farm astrbot plugin terminated')

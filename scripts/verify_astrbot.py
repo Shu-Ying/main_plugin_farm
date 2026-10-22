@@ -29,13 +29,15 @@ def verify_files(files):
             or manifest.get('plugin') != ROOT_NAME):
         raise ValueError('Invalid package identity')
     expected = manifest.get('files')
-    if not isinstance(expected, dict) or set(files) != set(expected) | {MANIFEST}:
+    if (not isinstance(expected, dict)
+            or set(files) != set(expected) | {MANIFEST}):
         raise ValueError('Package files differ from manifest')
     for name, digest in expected.items():
         safe_path(name)
         if hashlib.sha256(files[name]).hexdigest() != digest:
             raise ValueError('Package checksum mismatch')
-    required = {'main.py', 'metadata.yaml', '_conf_schema.json', 'runtime.py',
+    required = {'main.py', 'avatars.py', 'metadata.yaml', '_conf_schema.json',
+                'runtime.py',
                 'requirements.txt', 'LICENSE', 'version.txt', '_version.py',
                 '_vendor/farm_core/__init__.py',
                 '_vendor/farm_render/data/assets.zip'}
