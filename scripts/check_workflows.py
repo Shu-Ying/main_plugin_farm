@@ -49,6 +49,18 @@ def main():
     nonebot = yaml.load((
         root / ".github/workflows/nonebot-preview.yml"
     ).read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
+    for workflow in (source, nonebot):
+        install_commands = [
+            step.get("run", "").split()
+            for step in workflow["jobs"]["test"]["steps"]
+        ]
+        if not any(
+            any(tokens[index:index + 2] == [
+                "-r", "integrations/astrbot/requirements.txt",
+            ] for index in range(len(tokens) - 1))
+            for tokens in install_commands
+        ):
+            raise ValueError("Full test suite requires AstrBot dependencies")
     if nonebot["permissions"] != {"contents": "read"}:
         raise ValueError("NoneBot source permissions differ")
     trigger = nonebot["on"]
