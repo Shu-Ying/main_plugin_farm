@@ -72,7 +72,9 @@ class ZhenxunPackageTests(unittest.TestCase):
         self.assertIn("dirty", manifest["source"])
         with ZipFile(self.bundle) as archive:
             paths = archive.namelist()
-            self.assertTrue(any(p.endswith("assets.zip") for p in paths))
+            self.assertFalse(any(p.endswith("assets.zip") for p in paths))
+            self.assertTrue(any(p.endswith('asset-manifest.json')
+                                for p in paths))
             self.assertFalse(any("astrbot" in p or "legacy/" in p
                                  for p in paths))
             source = archive.read(next(

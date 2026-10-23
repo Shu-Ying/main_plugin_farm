@@ -37,7 +37,7 @@ def checked_url(url):
     parsed = urlsplit(url)
     if (parsed.scheme != 'https' or not parsed.hostname or parsed.username
             or parsed.password or parsed.query or parsed.fragment):
-        raise ValueError('Resource URL requires public HTTPS without credentials')
+        raise ValueError('Resource URL requires HTTPS without credentials')
     return url
 
 

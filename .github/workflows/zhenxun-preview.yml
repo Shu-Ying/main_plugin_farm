@@ -57,6 +57,8 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
+      - name: Verify external asset manifest
+        run: python scripts/check_asset_manifest.py
       - name: Build selected target only
         run: >-
           python scripts/build_zhenxun.py

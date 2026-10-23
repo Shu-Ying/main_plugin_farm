@@ -32,6 +32,11 @@
 
 ## 待确认与已知限制
 
+2026-10-23后续进展：已将三端发行包的assets.zip移至farm_service仓库
+`assets/`，本地新包`dist/astrbot-external-assets-20261023/`大小4,599,804字节
+（4.39 MiB），通过`--marketplace`大小及完整性检查；以下24.08 MiB为旧产物记录。
+配置及服务说明以`farm_service/docs/assets.md`为准；尚未推送或验证远端素材URL。
+
 1. **商店容量限制尚未满足**：官方普通投稿限制16MB，现有素材包
    `src/farm_render/data/assets.zip`本身已21,264,561字节；完整ZIP24.08 MiB。
    `--marketplace`已实际执行并拒绝。不能把本地构建成功当作市场发布就绪。

@@ -40,10 +40,22 @@
 | `data_dir` | 空 | 留空使用 `data/plugin_data/astrbot_plugin_farm`；更改不会自动搬迁存档 |
 | `image_format` | `AUTO` | `AUTO` 为 JPEG；也可选 `JPEG` 或 `PNG` |
 | `image_quality` | `75` | 整数1～95，下一次图片请求生效；PNG不受影响 |
+| `resource_source`（资源获取地址） | `Github` | `Github`、`Gitea`、`farm_service`，重载生效 |
+| `farm_service_url`（farm_service 地址） | 空 | 独立HTTPS基础地址，供资源及后续活动服务共用；选farm_service下载时必填 |
 
 除图片质量外，配置变更后请重载插件。高清农场的图片质量不低于85。
 依赖 Pillow 和 aiohttp，由插件依赖声明安装；插件不捆绑中文字体。
 当前重点适配 QQ/OneBot（`aiocqhttp`），其他平台尚未完成真实环境验证。
+
+插件不携带大型`assets.zip`。启动时校验数据目录下缓存素材的SHA256，
+缺失或不匹配时从所选源下载并校验后原子替换；GitHub/Gitea均从
+`farm_service`仓库根目录`assets/`获取。默认Github，不自动跨源切换；
+下载失败保留文字功能，调整来源后重载重试。两项配置始终同时存在，
+活动功能尚未实现。已有正确缓存时不联网。
+
+离线部署可将服务仓库的`assets/assets.zip`放到农场数据目录
+`assets/<SHA256>/assets.zip`；SHA见插件的`_vendor/farm_render/data/asset-manifest.json`。
+请先提交/发布服务仓库的素材，再发布依赖它的插件；不要把素材ZIP放回插件仓库。
 
 ## 玩法与旧账号兼容
 

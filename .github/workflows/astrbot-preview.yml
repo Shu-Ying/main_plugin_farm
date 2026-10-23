@@ -47,6 +47,8 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.10'
+      - name: Verify external asset manifest
+        run: python scripts/check_asset_manifest.py
       - run: python scripts/build_astrbot.py --output dist/astrbot-preview
       - name: Verify AstrBot package
         shell: bash

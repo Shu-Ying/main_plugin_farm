@@ -23,12 +23,21 @@ FARM_FONT=C:/Windows/Fonts/msyh.ttc
 FARM_IMAGE_FORMAT=AUTO
 FARM_IMAGE_QUALITY=75
 FARM_DEPLOYMENT=nonebot
+FARM_RESOURCE_SOURCE=Github
+FARM_SERVICE_URL=
 ```
 
 `FARM_DATA_DIR` 可显式指定数据目录，默认沿用旧版插件 localstore 下的
 `nonebot_plugin_farm/farm_db` 子目录。旧 `farm.db` 保留，首次使用按当前
 机器人和平台迁入 `farm.sqlite3`；遇到账号或平台冲突会拒绝覆盖。
 日志写入该目录的 `farm-preview.log`。字体不可用时提供文字响应。
+
+`FARM_RESOURCE_SOURCE`（资源获取地址）支持`Github`、`Gitea`、`farm_service`，
+默认`Github`。`FARM_SERVICE_URL`（farm_service 地址）始终独立存在，
+供资源及后续活动功能共用；选择farm_service下载时须填写HTTPS基础地址。
+两项修改后重载。插件不包含素材ZIP：每次启动校验本地SHA256，缺失或不匹配
+才从`farm_service`仓库根目录`assets/assets.zip`下载，校验成功后原子替换。
+失败时保留文字功能，不自动跨源切换，重载后重试。活动功能尚未实施。
 
 `FARM_IMAGE_QUALITY` 为整数1～95，默认75，统一控制全部农场图片
 的编码质量；越高通常越清晰、文件越大，PNG无损格式不受此值影响。
