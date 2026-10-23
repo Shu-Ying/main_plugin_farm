@@ -71,6 +71,36 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('参数有误', await self.call('plot_ids', '1'))
         self.assertIn('开通农场', await self.call('plot_ids', user_id='other'))
 
+    async def test_reclaim_conditions_charge_replay_and_arguments(self):
+        self.assertEqual(self.module.COMMANDS['开垦'], 'reclaim')
+        self.assertIn('开垦 条件', await self.call('help'))
+        await self.call('register')
+        who = self.runtime_identity()
+        asset = importlib.import_module(
+            self.package + '._vendor.farm_core.domain',
+        ).Asset
+
+        def fund(repo):
+            repo.asset(asset.POINT, 9500)
+            repo.asset(asset.EXPERIENCE, 3000)
+            return {}
+
+        await self.runtime.store.transact(who, 'fund', 'fixture', {},
+                                           self.runtime.service.clock(), fund)
+        self.assertIn('7号', await self.call('reclaim', '条件', message=None))
+        before = await self.runtime.service.snapshot(who)
+        self.assertIn('参数有误', await self.call('reclaim', '2'))
+        self.assertIn('未执行', await self.call('reclaim', message=None))
+        self.assertEqual(await self.runtime.service.snapshot(who), before)
+        result = await self.call('reclaim', message='reclaim')
+        self.assertIn('开垦已完成', result)
+        self.assertIn('10000农场币', result)
+        self.assertEqual(result, await self.call('reclaim', message='reclaim'))
+        after = await self.runtime.service.snapshot(who)
+        self.assertEqual(len(after.plots), 7)
+        self.assertEqual(after.account.point, 0)
+        self.assertIn('8号', await self.call('reclaim', '条件', message=None))
+
     async def test_plot_ids_text_fallback_uses_actual_owned_slots(self):
         await self.call('register')
         rendering = self.runtime.rendering
