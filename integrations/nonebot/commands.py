@@ -12,7 +12,9 @@ from nonebot_plugin_uninfo import Uninfo
 
 from .config import Config
 from .data_paths import data_directory
-from .runtime import COMMANDS, Runtime
+from .runtime import Runtime, command_map
+
+COMMANDS = command_map('nonebot')
 
 logger = logging.getLogger(__name__)
 config = get_plugin_config(Config)
@@ -22,6 +24,9 @@ runtime = Runtime(
     config.farm_font, config.farm_deployment, config.farm_image_format,
     font_setting="FARM_FONT",
     image_quality=config.farm_image_quality,
+    framework='nonebot',
+    resource_source=config.farm_resource_source,
+    service_url=config.farm_service_url,
 )
 driver.on_startup(runtime.start)
 driver.on_shutdown(runtime.close)

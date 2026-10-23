@@ -11,7 +11,9 @@ from astrbot.api.message_components import At, Image
 from astrbot.api.star import Context, Star, StarTools
 
 from .avatars import AvatarCache
-from .runtime import COMMANDS, Runtime
+from .runtime import Runtime, command_map
+
+COMMANDS = command_map('astrbot')
 
 
 logger = logging.getLogger(__name__)
@@ -35,6 +37,9 @@ class FarmPlugin(Star):
             image_format, font_setting='font_path',
             image_quality=config.get('image_quality', 75),
             image_quality_provider=lambda: self.config.get('image_quality', 75),
+            framework='astrbot',
+            resource_source=config.get('resource_source', 'Github'),
+            service_url=config.get('farm_service_url', ''),
         )
 
     async def initialize(self):

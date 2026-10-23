@@ -9,10 +9,11 @@ require("nonebot_plugin_localstore")
 
 from ._version import __version__
 from .config import Config
-from .runtime import HELP
+from .runtime import command_specs, help_text
 
 __plugin_meta__ = PluginMetadata(
-    name="农场", description="快乐的农场时光", usage=HELP,
+    name="农场", description="快乐的农场时光",
+    usage=help_text(command_specs('nonebot')),
     type="application", config=Config,
     homepage="https://github.com/Shu-Ying/nonebot_plugin_farm",
     supported_adapters=inherit_supported_adapters(

@@ -1,0 +1,88 @@
+name: AstrBot preview
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Sync main branch in AstrBot repository
+        default: false
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: farm-preview-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.10', '3.12']
+    env:
+      PYTHONPATH: src
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - run: >-
+          python -m pip install "Pillow>=10.4,<13"
+          setuptools wheel "PyYAML>=6,<7" build
+          -r integrations/astrbot/requirements.txt
+      - run: python scripts/ci_font.py
+      - run: python scripts/check_workflows.py
+      - run: python scripts/verify_foundation.py
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.10'
+      - run: python scripts/build_astrbot.py --output dist/astrbot-preview
+      - name: Verify AstrBot package
+        shell: bash
+        run: |
+          python scripts/verify_astrbot.py dist/astrbot-preview/astrbot_plugin_farm-*.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: astrbot-preview
+          path: dist/astrbot-preview/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+  sync-preview:
+    if: >-
+      (github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && inputs.publish)) &&
+      github.ref == 'refs/heads/main' &&
+      github.repository == 'Shu-Ying/main_plugin_farm'
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    # 沿用真寻环境，使 environment 中的 FARM_RELEASE_TOKEN 同样可用。
+    environment: zhenxun-preview
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v8
+        with:
+          name: astrbot-preview
+          path: incoming
+      - name: Sync validated AstrBot repository
+        env:
+          FARM_RELEASE_TOKEN: ${{ secrets.FARM_RELEASE_TOKEN }}
+        run: >-
+          python scripts/publish_astrbot.py
+          incoming/astrbot_plugin_farm-*.zip --publish

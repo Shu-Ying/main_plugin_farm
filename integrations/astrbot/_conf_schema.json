@@ -1,4 +1,17 @@
 {
+  "resource_source": {
+    "description": "资源获取地址",
+    "type": "string",
+    "default": "Github",
+    "options": ["Github", "Gitea", "farm_service"],
+    "hint": "启动时校验本地素材SHA256，缺失或不符从所选地址下载；修改后重载。"
+  },
+  "farm_service_url": {
+    "description": "farm_service 地址",
+    "type": "string",
+    "default": "",
+    "hint": "始终独立配置，用于资源及后续活动服务；选择farm_service获取素材时必填HTTPS基础地址。"
+  },
   "font_path": {
     "description": "中文字体路径",
     "type": "string",

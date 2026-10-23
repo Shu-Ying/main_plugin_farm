@@ -44,9 +44,11 @@ def fit_grid(source, target):
     ]) for point, dest in zip(design, target)]
     if max(errors) > 10:
         raise ValueError('Local grid no longer matches reference geometry')
-    return [row[:2] for row in affine], {
-        'rms': math.sqrt(sum(e*e for e in errors)/len(errors)),
-        'maximum': max(errors), 'points': len(errors),
+    # Python 版本的浮点求和及平台数学库可能产生末位差异。
+    # 固定导出精度，避免无意义的差异使 CI 字节校验失败。
+    return [[round(value, 8) for value in row[:2]] for row in affine], {
+        'rms': round(math.sqrt(sum(e*e for e in errors)/len(errors)), 8),
+        'maximum': round(max(errors), 8), 'points': len(errors),
     }
 
 

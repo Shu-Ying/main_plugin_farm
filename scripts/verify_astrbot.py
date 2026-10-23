@@ -11,6 +11,7 @@ from zipfile import ZipFile
 ROOT_NAME = 'astrbot_plugin_farm'
 MANIFEST = 'FARM-MANIFEST.json'
 MAX_BYTES = 100 * 1024 * 1024
+MAX_ARCHIVE_BYTES = 16 * 1024 * 1024
 
 
 def safe_path(name):
@@ -37,10 +38,14 @@ def verify_files(files):
         if hashlib.sha256(files[name]).hexdigest() != digest:
             raise ValueError('Package checksum mismatch')
     required = {'main.py', 'avatars.py', 'metadata.yaml', '_conf_schema.json',
-                'runtime.py',
+                'runtime.py', 'README.md', 'CHANGELOG.md', 'logo.png',
+                'logo-readme.png',
+                'images/farm-preview.png',
                 'requirements.txt', 'LICENSE', 'version.txt', '_version.py',
                 '_vendor/farm_core/__init__.py',
-                '_vendor/farm_render/data/assets.zip'}
+                '_vendor/farm_render/data/asset-manifest.json'}
+    if any(name.endswith('/assets.zip') for name in files):
+        raise ValueError('Resource ZIP must not be in plugin repository')
     if not required <= set(files):
         raise ValueError('Incomplete plugin')
     metadata = json.loads(files['metadata.yaml'])
@@ -70,15 +75,19 @@ def read_package(path):
     return files
 
 
-def verify_package(path):
+def verify_package(path, marketplace=False):
+    if marketplace and Path(path).stat().st_size > MAX_ARCHIVE_BYTES:
+        raise ValueError('Marketplace ZIP exceeds 16 MiB')
     return verify_files(read_package(path))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('package', type=Path)
+    parser.add_argument('--marketplace', action='store_true',
+                        help='Also enforce the marketplace 16 MiB limit')
     args = parser.parse_args()
-    manifest = verify_package(args.package)
+    manifest = verify_package(args.package, marketplace=args.marketplace)
     print(f"Verified astrbot {manifest['version']}: "
           f"{len(manifest['files'])} files")
 

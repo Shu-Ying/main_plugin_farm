@@ -31,5 +31,5 @@ include = ["nonebot_plugin_farm*"]
 [tool.setuptools.package-data]
 "nonebot_plugin_farm._vendor.farm_core" = ["data/*.json"]
 "nonebot_plugin_farm._vendor.farm_render" = [
-    "data/*.json", "data/*.zip", "data/*.md",
+    "data/*.json", "data/*.md",
 ]

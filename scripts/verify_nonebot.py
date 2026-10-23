@@ -41,11 +41,13 @@ def verify_files(files):
         "nonebot_plugin_farm/__init__.py", "nonebot_plugin_farm/config.py",
         "nonebot_plugin_farm/commands.py", "nonebot_plugin_farm/runtime.py",
         "nonebot_plugin_farm/_vendor/farm_core/__init__.py",
-        "nonebot_plugin_farm/_vendor/farm_render/data/assets.zip",
+        "nonebot_plugin_farm/_vendor/farm_render/data/asset-manifest.json",
         ".github/workflows/publish.yaml", ".github/workflows/verify.yml",
     }
     if not required <= set(files):
         raise ValueError("Incomplete plugin repository")
+    if any(name.endswith('/assets.zip') for name in files):
+        raise ValueError('Resource ZIP must not be in plugin repository')
     if files["version.txt"].decode().strip() != manifest["version"]:
         raise ValueError("Version file differs from manifest")
     return manifest

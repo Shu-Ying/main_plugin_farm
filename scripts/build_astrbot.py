@@ -4,6 +4,7 @@ import argparse
 import ast
 import hashlib
 import json
+import runpy
 from pathlib import Path
 import tempfile
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
@@ -11,6 +12,24 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 from build_zhenxun import build as build_shared, read_version, source_identity
 from verify_astrbot import MANIFEST, ROOT_NAME, verify_files, verify_package
 from verify_zhenxun import read_package as read_shared
+
+
+def render_readme(root):
+    template = (root / 'readme/astrbot.md').read_text(encoding='utf-8')
+    marker = '<!-- FARM_COMMANDS -->'
+    if template.count(marker) != 1:
+        raise ValueError('AstrBot README requires one command marker')
+    definitions = runpy.run_path(str(root / 'src/farm_core/commands.py'))
+    lines = ['| 分类 | 指令 | 说明 |', '| --- | --- | --- |']
+    specs = definitions['command_specs']('astrbot')
+    for group, rows in definitions['help_groups'](specs):
+        for usage, description in rows:
+            values = (group, f'`/{usage}`', description)
+            lines.append('| ' + ' | '.join(
+                value.replace('|', r'\|').replace('\n', ' ')
+                for value in values
+            ) + ' |')
+    return template.replace(marker, '\n'.join(lines)).encode('utf-8')
 
 
 def build(root, output):
@@ -28,11 +47,15 @@ def build(root, output):
              )}
     source = root / 'integrations/astrbot'
     for name in ('main.py', 'avatars.py', '_conf_schema.json',
-                 'requirements.txt'):
+                 'requirements.txt', 'CHANGELOG.md'):
         files[name] = (source / name).read_bytes()
-    files['README.md'] = (source / 'README.md').read_bytes()
+    # AstrBot识别固定文件名logo.png；README单独使用高清原图。
+    files['logo.png'] = (root / 'logo-astrbot.png').read_bytes()
+    files['logo-readme.png'] = (root / 'logo.png').read_bytes()
+    files['images/farm-preview.png'] = shared['images/farm-preview.png']
+    files['README.md'] = render_readme(root)
     files['runtime.py'] = (
-        root / 'integrations/zhenxun/runtime.py'
+        root / 'integrations/shared/runtime.py'
     ).read_bytes()
     files['verify_package.py'] = (
         root / 'scripts/verify_astrbot.py'
@@ -40,9 +63,14 @@ def build(root, output):
     # JSON是YAML的子集；标准库即可生成AstrBot可读的metadata.yaml。
     files['metadata.yaml'] = (json.dumps({
         'name': ROOT_NAME, 'display_name': '农场',
-        'desc': '种植、收获、仓库、交易与农场图片，复用Farm共享核心。',
+        'short_desc': '开通农场，体验种植、收获、偷菜与土地开垦。',
+        'desc': '农场种植小游戏，支持种子商店、分类仓库、作物交易、'
+                '除虫、偷菜、土地开垦和动态图片帮助；使用本地存档。',
         'version': version, 'author': 'Shu-Ying',
         'repo': 'https://github.com/Shu-Ying/astrbot_plugin_farm',
+        'social_link': 'https://github.com/Shu-Ying',
+        'tags': ['农场', '种植', '小游戏'],
+        'support_platforms': ['aiocqhttp'],
     }, ensure_ascii=False, indent=2) + '\n').encode()
     for name, content in files.items():
         if name.endswith('.py'):

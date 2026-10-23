@@ -26,14 +26,14 @@ def build(root, output):
         files[prefix + name] = (integration / name).read_bytes()
     # 同一运行时源，避免两个适配器的业务命令与渲染行为发生分叉。
     files[prefix + "runtime.py"] = (
-        root / "integrations/zhenxun/runtime.py"
+        root / "integrations/shared/runtime.py"
     ).read_bytes()
     files[prefix + "_vendor/__init__.py"] = b'"""Private farm modules."""\n'
     for package in ("farm_core", "farm_render"):
         source = root / "src" / package
         selected = list(source.glob("*.py")) + [
             path for path in (source / "data").iterdir()
-            if path.suffix in (".json", ".zip", ".md")
+            if path.suffix in (".json", ".md")
         ]
         for path in selected:
             if path.is_symlink():
@@ -47,8 +47,9 @@ def build(root, output):
             relative = path.relative_to(source).as_posix()
             files[f"{prefix}_vendor/{package}/{relative}"] = content
     for name, source in {
-        "LICENSE": "LICENSE", "README.md": "docs/12-nonebot.md",
+        "LICENSE": "LICENSE", "README.md": "readme/nonebot.md",
         "version.txt": "version.txt",
+        "logo.png": "logo.png",
         "images/farm-preview.png": "images/farm-preview.png",
         "pyproject.toml": "release/nonebot/pyproject.toml",
         "MANIFEST.in": "release/nonebot/MANIFEST.in",

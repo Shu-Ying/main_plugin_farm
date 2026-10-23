@@ -31,8 +31,41 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
         version = (ROOT / 'version.txt').read_text().strip()
         self.assertEqual(manifest['version'], version)
         self.assertEqual(json.loads(files['metadata.yaml'])['version'], version)
+        metadata = json.loads(files['metadata.yaml'])
+        self.assertEqual(metadata['display_name'], '农场')
+        self.assertEqual(metadata['support_platforms'], ['aiocqhttp'])
+        self.assertTrue(metadata['short_desc'])
+        self.assertEqual(files['logo.png'],
+                         (ROOT / 'logo-astrbot.png').read_bytes())
+        self.assertEqual(files['logo-readme.png'],
+                         (ROOT / 'logo.png').read_bytes())
+        self.assertIn('农场', metadata['tags'])
+        from io import BytesIO
+        from PIL import Image
+        with Image.open(BytesIO(files['logo.png'])) as logo:
+            self.assertEqual(logo.format, 'PNG')
+            self.assertEqual(logo.width, logo.height)
+            self.assertEqual(logo.size, (256, 256))
+            self.assertIn('A', logo.getbands())
+            self.assertEqual(logo.getchannel('A').getextrema()[0], 0)
+        self.assertEqual(files['CHANGELOG.md'], (
+            ROOT / 'integrations/astrbot/CHANGELOG.md'
+        ).read_bytes())
+        readme = files['README.md'].decode()
+        self.assertIn('/main/logo-readme.png', readme)
+        self.assertIn('width="400"', readme)
+        self.assertNotIn('<!-- FARM_COMMANDS -->', readme)
+        self.assertIn('/农场帮助 [文字]', readme)
+        self.assertIn('/开垦 条件', readme)
+        self.assertIn('raw.githubusercontent.com', readme)
+        self.assertIn('images/farm-preview.png', files)
+        self.assertFalse(any(name.endswith('/assets.zip') for name in files))
+        from verify_astrbot import verify_package
+        with patch('verify_astrbot.MAX_ARCHIVE_BYTES', 1):
+            with self.assertRaisesRegex(ValueError, '16 MiB'):
+                verify_package(first, marketplace=True)
         self.assertEqual(files['runtime.py'], (
-            ROOT / 'integrations/zhenxun/runtime.py'
+            ROOT / 'integrations/shared/runtime.py'
         ).read_bytes())
         for name, content in files.items():
             self.assertNotIn('.git/', name)
@@ -93,6 +126,14 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
                 plugin = main.FarmPlugin(object(), {
                     'font_path': str(choose_font()), 'image_quality': 55,
                 })
+                # 使用真实开发素材预置缓存，模拟宿主测试不访问网络。
+                manifest = json.loads((ROOT /
+                    'src/farm_render/data/asset-manifest.json').read_bytes())
+                cached = (plugin.runtime.data_dir / 'assets'
+                          / manifest['sha256'] / 'assets.zip')
+                cached.parent.mkdir(parents=True, exist_ok=True)
+                cached.write_bytes((ROOT /
+                    'src/farm_render/data/assets.zip').read_bytes())
                 await plugin.initialize()
                 self.assertEqual(set(commands), set(main.COMMANDS))
 

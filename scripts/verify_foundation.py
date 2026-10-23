@@ -16,6 +16,7 @@ def main():
         [sys.executable, "scripts/check_baseline.py"],
         [sys.executable, "scripts/export_catalogue.py", "--check"],
         [sys.executable, "scripts/export_render_assets.py", "--check"],
+        [sys.executable, 'scripts/check_asset_manifest.py'],
         [
             sys.executable, "-m", "unittest", "discover",
             "-s", "tests", "-p", "test_*.py", "-v",

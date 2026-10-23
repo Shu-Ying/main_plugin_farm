@@ -46,17 +46,20 @@ def build(root, output):
     files = {}
     integration = root / "integrations/zhenxun"
     for name in (
-        "__init__.py", "runtime.py", "commands.py", "data_paths.py",
+        "__init__.py", "commands.py", "data_paths.py",
         "requirements.txt", "config_migration.py",
     ):
         files[name] = (integration / name).read_bytes()
+    files["runtime.py"] = (
+        root / "integrations/shared/runtime.py"
+    ).read_bytes()
     files["_vendor/__init__.py"] = b'"""Private shared farm modules."""\n'
     for package in ("farm_core", "farm_render"):
         source = root / "src" / package
         selected = list(source.glob("*.py")) + [
             p for p in (source / "data").iterdir() if p.suffix in (
                 ".json", ".zip", ".md",
-            )
+            ) and p.name != 'assets.zip'
         ]
         for path in selected:
             if path.is_symlink():
@@ -71,8 +74,9 @@ def build(root, output):
             files[f"_vendor/{package}/{relative}"] = content
     for name, source in {
         "LICENSE": root / "LICENSE",
-        "README.md": root / "docs/11-zhenxun-preview.md",
+        "README.md": root / "readme/zhenxun.md",
         "version.txt": root / "version.txt",
+        "logo.png": root / "logo.png",
         "images/farm-preview.png": root / "images/farm-preview.png",
         "verify_package.py": root / "scripts/verify_zhenxun.py",
         ".github/workflows/verify.yml": root / "release/zhenxun/verify.yml",

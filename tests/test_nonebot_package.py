@@ -26,15 +26,17 @@ class NoneBotPackageTests(unittest.TestCase):
         other = build(ROOT, self.root / "second")
         self.assertEqual(self.bundle.read_bytes(), other.read_bytes())
         self.assertEqual(self.files["nonebot_plugin_farm/runtime.py"], (
-            ROOT / "integrations/zhenxun/runtime.py"
+            ROOT / "integrations/shared/runtime.py"
         ).read_bytes())
         for suffix in ("farm_core/data/plants.json",
-                       "farm_render/data/assets.zip"):
+                       "farm_render/data/asset-manifest.json"):
             self.assertTrue(any(name.endswith(suffix) for name in self.files))
         self.assertEqual(verify_files(self.files)["target"], "nonebot")
         self.assertIn("pyproject.toml", self.files)
         self.assertIn(".github/workflows/publish.yaml", self.files)
         self.assertFalse(any("legacy/" in name for name in self.files))
+        self.assertFalse(any(name.endswith('/assets.zip')
+                             for name in self.files))
         with self.assertRaises(FileExistsError):
             build(ROOT, self.root / "built")
 

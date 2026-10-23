@@ -25,3 +25,9 @@ class Config(BaseModel):
         75,
         description="全部农场图片编码质量；仅我的农场高清时至少85",
     )
+    farm_resource_source: Literal['Github', 'Gitea', 'farm_service'] = Field(
+        'Github', description='资源获取地址，修改后重载插件',
+    )
+    farm_service_url: str = Field(
+        '', description='farm_service 地址，独立供资源及活动服务使用',
+    )

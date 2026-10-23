@@ -17,7 +17,7 @@ spec.loader.exec_module(migration)
 
 
 class ConfigMigrationTests(unittest.TestCase):
-    def test_zhenxun_registers_global_quality_in_plugin_metadata(self):
+    def test_zhenxun_registers_quality_and_resource_configuration(self):
         plugin = ModuleType('nonebot.plugin')
         plugin.PluginMetadata = lambda **values: SimpleNamespace(**values)
         utils = ModuleType('zhenxun.configs.utils')
@@ -42,11 +42,20 @@ class ConfigMigrationTests(unittest.TestCase):
             exec(compile(source.read_text(encoding='utf-8'), str(source),
                          'exec'), namespace)
         configs = namespace['__plugin_meta__'].extra['configs']
-        self.assertEqual(len(configs), 1)
-        self.assertEqual(configs[0].key, '农场图片质量')
-        self.assertEqual(configs[0].value, 75)
-        self.assertEqual(configs[0].default_value, 75)
-        self.assertIs(configs[0].type, int)
+        self.assertEqual(len(configs), 3)
+        by_key = {config.key: config for config in configs}
+        self.assertEqual(set(by_key), {
+            '农场图片质量', '资源获取地址', 'farm_service 地址',
+        })
+        for key, expected, value_type in (
+            ('农场图片质量', 75, int),
+            ('资源获取地址', 'Github', str),
+            ('farm_service 地址', '', str),
+        ):
+            with self.subTest(key=key):
+                self.assertEqual(by_key[key].value, expected)
+                self.assertEqual(by_key[key].default_value, expected)
+                self.assertIs(by_key[key].type, value_type)
 
     @unittest.skipUnless(importlib.util.find_spec('pydantic'),
                          'NoneBot host config requires Pydantic')
@@ -67,6 +76,21 @@ class ConfigMigrationTests(unittest.TestCase):
                     spec.loader.exec_module(module)
                 config = module.Config
                 self.assertEqual(config().farm_image_quality, 75)
+                self.assertEqual(config().farm_resource_source, 'Github')
+                self.assertEqual(config().farm_service_url, '')
+                for source in ('Github', 'Gitea', 'farm_service'):
+                    selected = config(
+                        farm_resource_source=source,
+                        farm_service_url='https://farm.example/service',
+                    )
+                    self.assertEqual(selected.farm_resource_source, source)
+                    self.assertEqual(selected.farm_service_url,
+                                     'https://farm.example/service')
+                for source in ('github', 'unknown', '', None):
+                    with self.subTest(source=source), self.assertRaises(
+                        library.ValidationError,
+                    ):
+                        config(farm_resource_source=source)
                 for value in (1, 95):
                     actual = config(farm_image_quality=value).farm_image_quality
                     self.assertEqual(actual, value)

@@ -28,6 +28,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         sys.modules[self.package] = module
         self.module = importlib.import_module(self.package + ".runtime")
         self.runtime = self.module.Runtime(self.root / "data", choose_font())
+        self.seed_assets(self.runtime)
         await self.runtime.start()
         self.context = dict(bot_id="bot", platform="OneBot V11", user_id="1",
                             message_id="registration", display_name="离线玩家")
@@ -38,6 +39,15 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
             if name == self.package or name.startswith(self.package + "."):
                 del sys.modules[name]
         self.temporary.cleanup()
+
+    def seed_assets(self, runtime):
+        bundle = importlib.import_module(
+            self.package + '._vendor.farm_render.bundle',
+        )
+        target = (runtime.data_dir / 'assets'
+                  / bundle.expected_manifest()['sha256'] / 'assets.zip')
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / 'src/farm_render/data/assets.zip', target)
 
     async def call(self, action, arguments="", message="event", **changes):
         return await self.runtime.execute(
@@ -50,7 +60,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         from PIL import Image
         from unittest.mock import AsyncMock
         self.assertEqual(self.module.COMMANDS['地块编号'], 'plot_ids')
-        self.assertIn('地块编号', await self.call('help'))
+        self.assertIn('地块编号', await self.call('help', '文字'))
         first = await self.call('register')
         self.assertIn('6块土地', first)
         self.assertIn('地块编号', first)
@@ -71,9 +81,47 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('参数有误', await self.call('plot_ids', '1'))
         self.assertIn('开通农场', await self.call('plot_ids', user_id='other'))
 
+    async def test_dynamic_help_image_text_fallback_and_no_player_access(self):
+        from io import BytesIO
+        from PIL import Image
+        from unittest.mock import AsyncMock
+        with patch.object(self.runtime.store, 'migrate_legacy',
+                          new=AsyncMock()) as migrate:
+            image = await self.call('help', message=None)
+            migrate.assert_not_awaited()
+        with Image.open(BytesIO(image)) as decoded:
+            self.assertEqual(decoded.width, 1200)
+        text = await self.call('help', '文字', message=None)
+        for command in self.module.COMMANDS:
+            self.assertIn(command, text)
+        self.assertNotIn('购买农场币', text)
+        self.assertIn('仅我的农场支持高清',
+                      await self.call('help', '高清'))
+        self.assertIn('参数有误', await self.call('help', '2'))
+        with patch.object(self.runtime.rendering, 'help_menu',
+                          new=AsyncMock(side_effect=OSError('fixture'))):
+            self.assertEqual(await self.call('help'), text)
+        rendering = self.runtime.rendering
+        self.runtime.rendering = None
+        try:
+            self.assertEqual(await self.call('help'), text)
+        finally:
+            self.runtime.rendering = rendering
+
+    async def test_help_uses_live_global_quality(self):
+        from unittest.mock import AsyncMock
+        with patch.object(self.runtime.rendering, 'help_menu',
+                          new=AsyncMock(return_value=b'image')) as render:
+            self.runtime.image_quality_provider = lambda: 91
+            self.assertEqual(await self.call('help'), b'image')
+            self.assertEqual(render.await_args.args[-1], 91)
+            self.runtime.image_quality_provider = lambda: False
+            self.assertIn('图片质量配置无效', await self.call('help'))
+            self.assertIsInstance(await self.call('help', '文字'), str)
+
     async def test_reclaim_conditions_charge_replay_and_arguments(self):
         self.assertEqual(self.module.COMMANDS['开垦'], 'reclaim')
-        self.assertIn('开垦 条件', await self.call('help'))
+        self.assertIn('开垦 条件', await self.call('help', '文字'))
         await self.call('register')
         who = self.runtime_identity()
         asset = importlib.import_module(
@@ -226,7 +274,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
                     ))
         for action in ('seeds', 'crops'):
             self.assertIsInstance(await self.call(action, '1 文字'), str)
-        help_text = await self.call('help')
+        help_text = await self.call('help', '文字')
         self.assertIn('仅我的农场支持高清', help_text)
         self.assertNotIn('地块编号 [高清]', help_text)
         self.assertNotIn('[高清/文字]', help_text)
@@ -328,7 +376,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_pest_command_clears_pests_and_preserves_growth(self):
         self.assertEqual(self.module.COMMANDS["农场除虫"], "clear_pests")
-        help_text = await self.call("help")
+        help_text = await self.call("help", "文字")
         self.assertIn("每只虫", help_text)
         self.assertIn("间隔至少2小时", help_text)
         self.runtime.service.clock = lambda: 1000
@@ -414,6 +462,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         other = self.module.Runtime(
             self.root / "without-font", self.root / "missing.ttf",
         )
+        self.seed_assets(other)
         await other.start()
         try:
             response = await other.execute("farm", "", **self.context)
@@ -427,6 +476,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         (fonts / "HYWenHei-85W.ttf").write_bytes(b"broken")
         shutil.copyfile(choose_font(), fonts / "msyh.ttf")
         other = self.module.Runtime(self.root / "default-font", font_dir=fonts)
+        self.seed_assets(other)
         await other.start()
         try:
             self.assertIsNotNone(other.rendering)
@@ -446,6 +496,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
             self.root / "explicit-font", explicit,
             font_dir=self.root / "not-present",
         )
+        self.seed_assets(other)
         await other.start()
         try:
             self.assertEqual(other.rendering.renderer.font_path, explicit)
@@ -465,6 +516,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         old = self.root / 'directories/farm_preview'
         target = old.with_name('farm_db')
         previous = self.module.Runtime(old, choose_font())
+        self.seed_assets(previous)
         await previous.start()
         try:
             await previous.execute('register', '旧农场', **self.context)
@@ -474,6 +526,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         before = old_database.read_bytes()
         target.mkdir()
         current = self.module.Runtime(target, choose_font())
+        self.seed_assets(current)
         await current.start()
         try:
             self.assertEqual(old_database.read_bytes(), before)
@@ -557,12 +610,16 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         platform.PlatformUtils = SimpleNamespace()
         config = ModuleType("zhenxun.configs.config")
         quality_values = {'value': 49}
+
+        def configured_value(key, default, **kwargs):
+            if key != '农场图片质量':
+                return default
+            value = quality_values['value']
+            return value if not kwargs['build_model'] else int(value)
+
         config.Config = SimpleNamespace(
             get=lambda module: SimpleNamespace(
-                configs={}, get=lambda key, default, **kwargs: (
-                    quality_values['value'] if not kwargs['build_model']
-                    else int(quality_values['value'])
-                ),
+                configs={}, get=configured_value,
             ),
             get_config=lambda *args, **kwargs: int(quality_values['value']),
             _simple_data={},
@@ -584,6 +641,8 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
                              (self.root / 'farm_db').resolve())
             self.assertEqual(set(hooks["commands"]), set(self.module.COMMANDS))
             self.assertEqual(len(hooks["start"]), 1)
+            self.assertEqual(imported.resource_options(), ('Github', ''))
+            self.seed_assets(imported.runtime)
             await hooks["start"][0]()
             try:
                 bot = SimpleNamespace(self_id="bot", adapter=SimpleNamespace(

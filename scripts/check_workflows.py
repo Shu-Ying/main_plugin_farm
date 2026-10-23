@@ -1,4 +1,4 @@
-"""检查真寻与 NoneBot 工作流的 YAML 和发布边界。"""
+"""检查真寻、NoneBot 与 AstrBot 工作流的 YAML 和发布边界。"""
 
 import argparse
 from pathlib import Path
@@ -49,7 +49,10 @@ def main():
     nonebot = yaml.load((
         root / ".github/workflows/nonebot-preview.yml"
     ).read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
-    for workflow in (source, nonebot):
+    astrbot = yaml.load((
+        root / ".github/workflows/astrbot-preview.yml"
+    ).read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
+    for workflow in (source, nonebot, astrbot):
         install_commands = [
             step.get("run", "").split()
             for step in workflow["jobs"]["test"]["steps"]
@@ -98,6 +101,21 @@ def main():
     steps = publishing["jobs"]["publish"]["steps"]
     if steps[-1]["with"]["password"] != "${{ secrets.PYPI_TOKEN }}":
         raise ValueError("Keep the existing PyPI secret")
+    trigger = astrbot["on"]
+    sync = astrbot["jobs"]["sync-preview"]
+    if (astrbot["permissions"] != {"contents": "read"}
+            or set(trigger) != set(nonebot["on"])
+            or trigger["push"]["branches"] != ["main"]
+            or set(trigger["workflow_dispatch"]["inputs"]) != {"publish"}
+            or trigger["workflow_dispatch"]["inputs"]["publish"]["default"]
+            != "false"
+            or sync["environment"] != "zhenxun-preview"
+            or " ".join(sync["if"].split()) != expected_condition
+            or astrbot["jobs"]["build"]["needs"] != "test"
+            or sync["needs"] != ["test", "build"]
+            or sync["steps"][-1]["env"]["FARM_RELEASE_TOKEN"]
+            != "${{ secrets.FARM_RELEASE_TOKEN }}"):
+        raise ValueError("AstrBot workflow publication boundary differs")
     print("Workflow YAML and publication guards checked")
 
 
