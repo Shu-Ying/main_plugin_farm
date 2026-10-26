@@ -5,15 +5,19 @@
 farm_render 使用 Pillow 实现同步画布操作；farm_core 不依赖 Pillow。
 工具支持透明合成、复制、缩放、裁剪、文本测量与超长省略，以及
 WebP/JPEG/PNG 编码。JPEG 合并透明背景，输出携带 MIME、尺寸与字节。
-WebP 默认采用有损质量75、method=2；高清质量85。格式与尺寸独立，
+WebP 默认采用有损质量75、method=2；高清质量为max(配置质量,85)。格式与尺寸独立，
 auto 根据调用方声明的平台能力选择 WebP 或 JPEG，本机无 WebP 编码
 支持时 auto 回退 JPEG，显式 WebP 则清楚报错。PNG 保留无损选项。
-素材独立打入安装包，不在运行时引用 legacy 或宿主；字体显式配置，
-不复制 Windows 商业字体。无字体时明确报错，不输出缺字占位图。
+开发素材独立生成，不在运行时引用 legacy 或宿主。插件携带轻量元数据
+及绑定摘要的素材清单，大型 assets.zip 从所选源校验下载并缓存，
+不打入插件发布包；小型升级土地素材仍随包提供。中文字体支持显式
+配置，或独立校验下载原版小赖字体及完整 OFL 许可，不复制 Windows
+商业字体。无可用素材或字体时接入层降级文字，不输出缺字占位图。
 
 Scenario: Framework-independent packaged renderer
 Acceptance: A9
-从 wheel 安装到临时目录，无 legacy 和框架仍能加载素材并生成图片。
+从 wheel 安装到临时目录，无 legacy 和框架，显式提供已校验的外部
+素材及字体后仍可生成图片；下载与校验止于接入/资源准备层。
 
 ## Snapshot and layout
 
@@ -22,7 +26,10 @@ Acceptance: A9
 首季阶段锚点由保存的 mature_at-growth_seconds 推导，再季使用
 mature_at-regrowth_seconds，按本季时长映射展示阶段，成熟优先、
 枯萎优先于成熟。阶段仅影响外观，不修改交易规则和数据库。
-读取实际 offsetX/Y/W/H 字段；缺失作物资源使用显式占位并记录警告。
+作物定位采用 schema=4 的 visible_contact_center 统一公式，按本地
+土地中心落点，保留完整纹理和直立等比缩放，不使用旧 offset 字段
+或逐阶段手调锚点。地块位置按当前稳定编号映射。缺失作物资源使用
+显式占位并记录警告。
 用户信息显示真实快照余额、点券和经验，头像仅接收字节，无头像时
 绘制默认图；拒绝超大或无效头像并降级。主题由调用方明确提供。
 

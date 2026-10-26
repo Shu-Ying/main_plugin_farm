@@ -1,0 +1,617 @@
+schema: comet.native.v4
+name: farm-core-foundation
+language: en
+phase: archive
+status: done
+state_version: 50
+brief: brief.md
+document_constraints_version: 3
+shape_confirmation_hash: 0c329cbbb25fef680c0862751441fb78bb7bd4d7a8a2f698edf5a20d17ab828e
+spec_changes:
+  - capability: farm-core
+    operation: create
+    source: specs/farm-core/spec.md
+  - capability: farm-render
+    operation: create
+    source: specs/farm-render/spec.md
+  - capability: zhenxun-preview
+    operation: create
+    source: specs/zhenxun-preview/spec.md
+workspace:
+  isolation: current
+  change_branch: main
+  target_branch: main
+  finish: null
+loop:
+  stage: done
+  goal_cycle: 7
+  iteration: 2
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 1
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: "A1: 旧基线827文件校验继续通过；核心不导入框架、无导入副作用， 从源码及安装包可独立运行，不在运行时引用legacy。"
+    result: passed
+    reason:
+      text: 当前Runtime
+        foundation-offline核实827旧基线与源码/安装包隔离测试通过；test_packaging.py校验无宿主导入、无导入副作用及临时wheel独立运行。
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: "A2: 可复现导出202条基线作物；ID及必要数值对应源静态数据库； 加载校验格式/schema，坏数据明确拒绝。运行时ID唯一，同名拒绝歧义。"
+    result: passed
+    reason:
+      text: export_catalogue.py只读静态库并排序确定性导出；Runtime导出比对、202条目录及坏schema/重复ID/同名歧义测试通过，catalogue.py显式拒绝无效输入。
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: "A3: 新注册得到500农场币、0点券、0经验、6空地；重复注册不增发， 不同作用域隔离；旧初始3块账号仅补3块，并发/重试/重启不重复补偿。"
+    result: passed
+    reason:
+      text: repository.py:33注册500币和6空地；application.py:61从注册来源识别旧初始3块并以固定幂等事务补3块；正式注册/隔离/并发/故障/重启补地测试通过。
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: "A4: 购买、播种扣款/入库/耗种正确；0、负数、bool、超大数量、余额、 库存或等级不足及未知作物明确失败，没有部分写入。"
+    result: passed
+    reason:
+      text: application.py:177购买与208播种校验目录、数量、余额、库存并在事务内修改；正式非法数量、未知作物、等级/余额不足、耗种与回滚测试通过。
+      truncated: false
+  - id: A5
+    source: brief.md
+    text: "A5: 未成熟不能收获，成熟只增加本次产量/经验；收获前100、本次20 后为120，播种经验另算。逐地加成顺序无关，多季/枯萎/铲除及成熟
+      边界遵守保存定义及可注入时钟。"
+    result: passed
+    reason:
+      text: application.py:251按保存的plot.plant逐地结算本次经验和产量、成熟边界与再生长；test_transactions中冻结定义、逐地加成、历史经验增量、多季和铲除测试通过。
+      truncated: false
+  - id: A6
+    source: brief.md
+    text: "A6: 余额100、出售收益20后为120；锁定限制指定和全部出售； 返回真实余额及安全文本，不出现模板参数缺失。"
+    result: passed
+    reason:
+      text: application.py:437统一保护锁定库存且只加本次收益；正式100余额出售20得120、两种出售入口锁定及安全文本测试通过。
+      truncated: false
+  - id: A7
+    source: brief.md
+    text: "A7: 故障注入使资产/地块/流水/结果整体回滚；重试返回原结果， 参数冲突拒绝；并发不透支/重复领奖，故障不伪装成功，重启后可读。"
+    result: passed
+    reason:
+      text: storage.py:353 BEGIN
+        IMMEDIATE将状态、流水与幂等结果一起提交，异常整体回滚；正式故障注入、参数冲突、取消重放、并发扣款/收获与重启测试通过。
+      truncated: false
+  - id: A8
+    source: brief.md
+    text: "A8: 离线测试、运行入口与说明可执行；文档区分源码、模拟、离线 产物与真实宿主/远程验证，准确记录当前实现与待办。"
+    result: passed
+    reason:
+      text: 新增docs/zhenxun-preview-current.md与实际构建、verify_foundation及安装入口一致；docs索引明确11为历史，09/10和发布README已说明6地、当前字体、内置作物与待办，并区分本机/模拟/真实验证。
+      truncated: false
+  - id: A9
+    source: brief.md
+    text: "A9: 图片工具支持透明合成、缩放、裁剪、测量/省略及三格式编码； 渲染不联网或导入框架，核心无Pillow依赖；安装后提供匹配外部资源可绘图。"
+    result: passed
+    reason:
+      text: canvas.py支持透明、缩裁、测量省略及三编码；assets/renderer不导入框架或联网，准备资源在接入层；正式Canvas及临时wheel绘图测试通过。
+      truncated: false
+  - id: A10
+    source: brief.md
+    text: "A10: 一次快照与统一时间绘制空地、生长、成熟、再生长、枯萎及 锁定状态，采用当前地块映射及统一定位，普通/高清输出可解码。"
+    result: passed
+    reason:
+      text: layout.py纯消费快照和now构造空/生长/成熟/再生长/枯萎状态，renderer使用当前映射；正式阶段、目标尺寸、作物统一落点回归通过，render-decode验证6幅普通/高清图片。
+      truncated: false
+  - id: A11
+    source: brief.md
+    text: "A11: 小图从目标尺寸绘制，素材与成图缓存有界且不污染共享图片； 阶段/成熟边界、余额、头像及身份变化不会复用过期图。"
+    result: passed
+    reason:
+      text: assets.py有界ByteLRU并返回图片副本；renderer请求键含场景、身份摘要、配置、格式和头像摘要；正式预算/共享图片安全/阶段成熟边界及余额头像身份失效测试通过。
+      truncated: false
+  - id: A12
+    source: brief.md
+    text: "A12: 后台合成编码限制并发、相同请求合并；取消不提前释放名额， 关闭等待任务排空；日志仅记录耗时、尺寸、缓存等安全信息。"
+    result: passed
+    reason:
+      text: service.py一次snapshot、to_thread、Semaphore及shield共享任务，关闭排空；正式事件循环不阻塞、并发上限、取消保留容量和失败重试测试通过；源码日志未输出身份或快照。
+      truncated: false
+  - id: A13
+    source: brief.md
+    text: "A13: 离线样例和真实测量覆盖尺寸/编码、冷暖缓存及调用方式； 图片可解码，明确本机测量不等同真实平台上传性能。"
+    result: passed
+    reason:
+      text: render_demo.py提供合成样例和冷暖缓存测量；本轮benchmark明确Windows/Python3.12.14/Pillow12.3及非上传范围，绑定Runtime验证1024/1536三格式六文件可解码且暖缓存全命中。
+      truncated: false
+  - id: A14
+    source: brief.md
+    text: "A14: 真寻原指令、路由、身份/幂等、异常反馈与启动关闭通过模拟验证； 字体显式路径优先、默认校验下载，资源失败文字可用，不操作真实宿主。"
+    result: passed
+    reason:
+      text: commands.py注册原指令与启动关闭、身份和稳定消息标识；runtime.py默认校验资源/字体、显式字体优先、失败文字保留；本候选模拟路由/生命周期/异常/幂等正式测试通过。
+      truncated: false
+  - id: A15
+    source: brief.md
+    text: "A15: 白名单真寻插件包包含私有共享模块、轻量数据、许可和来源哈希，
+      不含其他适配、legacy、测试、玩家数据或大型资源ZIP；准确标识脏源码， 相同输入可复现，构建不改源码。"
+    result: passed
+    reason:
+      text: build_zhenxun.py白名单生成私有_vendor、轻量数据许可与来源哈希，排除assets.zip并固定ZIP时间排序、记录dirty；正式可复现完整包及私有导入测试通过。
+      truncated: false
+  - id: A16
+    source: brief.md
+    text: "A16: 离线验证内容、导入与路由；安装拒绝穿越、坏哈希和已有目标， 失败无半成品，不操作旧插件/玩家数据或启动真实机器人。"
+    result: passed
+    reason:
+      text: verify_zhenxun.py拒绝穿越、重复、链接和哈希差异；install_zhenxun.py先校验、临时写入且拒绝已有目标；正式坏包/安装/目标保留及离线导入路由测试通过。
+      truncated: false
+  - id: A17
+    source: brief.md
+    text: "A17: 工作流检查、构建、上传；push main或显式publish输入可触发固定
+      真寻仓库main普通同步，PR不发布；脚本默认dry-run、不force，冲突失败， 凭据不落盘。本次只检查与模拟，不执行真实发布。"
+    result: passed
+    reason:
+      text: 工作流默认只读且PR无发布路径，main
+        push或明确publish输入经test/build触发固定目标；publish_zhenxun.py默认dry-run、不force、并发冲突失败，正式模拟和workflow-guards通过。
+      truncated: false
+  - id: A18
+    source: brief.md
+    text: "A18: 本机离线打包与安全边界检查通过；静态核对Windows/Linux与
+      Pillow10.4/12.3矩阵，明确本机环境及未运行矩阵；提供安装、依赖、
+      字体、数据库、回退/卸载与Secrets说明，不宣称真实平台已验证。"
+    result: passed
+    reason:
+      text: 当前说明覆盖生成包/requirements、停止旧插件、字体、数据目录、日志、备份回退卸载和Secret；与源码及Windows/Linux/Pillow10.4/12.3矩阵一致，明确1项跳过和未运行矩阵、真实宿主/远端边界；离线包安全测试通过。
+      truncated: false
+  - id: A19
+    source: brief.md
+    text: "A19: 图片质量默认75，整数1和95有效，0、96、bool及非整数拒绝； 配置覆盖图片编码并区分缓存。仅我的农场允许高清，质量不低于85与
+      配置值，其他查询拒绝高清，分页/文字可用，帮助和配置说明一致。"
+    result: passed
+    reason:
+      text: RenderOptions严格整数1至95、默认75；Runtime请求读取质量，仅farm高清1536且max(质量,85)，其他查询拒绝高清；正式边界、逐编码器传递、质量缓存与帮助测试通过。
+      truncated: false
+builder_handoff:
+  candidate_id: 2e7d9479-6e65-480f-b4df-85f937519b86
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:0eff5a20-cba2-445f-95de-405dd2ee7c01
+  iteration: 2
+  summary:
+    text: 修复独立验收A8/A18：新增docs/zhenxun-preview-current.md，补齐构建、部署依赖、安装配置、数据日志、备份回退卸载、Secrets及真实验证边界；docs索引明确旧docs/11为历史，更新09/10现行规则与发布README，取消签到/在线作物更新误报。无业务代码变更；重新核对全部19项，保留原17项证据。
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+    - A2
+    - A3
+    - A4
+    - A5
+    - A6
+    - A7
+    - A8
+    - A9
+    - A10
+    - A11
+    - A12
+    - A13
+    - A14
+    - A15
+    - A16
+    - A17
+    - A18
+    - A19
+  acceptance_review:
+    - id: A1
+      status: implemented-with-evidence
+      evidence:
+        - scripts/check_baseline.py
+        - tests/test_packaging.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A2
+      status: implemented-with-evidence
+      evidence:
+        - scripts/export_catalogue.py
+        - tests/test_domain.py
+        - tests/test_crop_identity.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A3
+      status: implemented-with-evidence
+      evidence:
+        - src/farm_core/repository.py:33
+        - tests/test_transactions.py
+        - tests/test_land.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A4
+      status: implemented-with-evidence
+      evidence:
+        - src/farm_core/application.py:177
+        - tests/test_transactions.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A5
+      status: implemented-with-evidence
+      evidence:
+        - src/farm_core/application.py:251
+        - tests/test_transactions.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A6
+      status: implemented-with-evidence
+      evidence:
+        - src/farm_core/application.py:437
+        - tests/test_transactions.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A7
+      status: implemented-with-evidence
+      evidence:
+        - src/farm_core/storage.py:353
+        - tests/test_transactions.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A8
+      status: implemented-with-evidence
+      evidence:
+        - docs/zhenxun-preview-current.md
+        - docs/README.md
+        - docs/09-foundation.md
+        - docs/10-rendering.md
+        - readme/zhenxun.md
+        - scripts/verify_foundation.py
+      note: 已对照源码修正历史描述，提供完整当前使用说明并清晰区分历史记录和本轮验证；原业务行为未变，供新的独立Verifier复核。
+    - id: A9
+      status: implemented-with-evidence
+      evidence:
+        - src/farm_render/canvas.py
+        - src/farm_render/assets.py
+        - tests/test_packaging.py
+        - tests/test_render.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A10
+      status: implemented-with-evidence
+      evidence:
+        - src/farm_render/renderer.py
+        - tests/test_crop_positions.py
+        - tests/test_render.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A11
+      status: implemented-with-evidence
+      evidence:
+        - src/farm_render/assets.py
+        - tests/test_render.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A12
+      status: implemented-with-evidence
+      evidence:
+        - src/farm_render/service.py
+        - tests/test_render.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A13
+      status: implemented-with-evidence
+      evidence:
+        - runtime/archive-foundation-20261026/benchmark.json
+        - scripts/render_demo.py
+        - docs/10-rendering.md
+      note: 本轮Windows/Python3.12.14/Pillow12.3实测六种输出，1024/1536三格式冷暖缓存均生成；正式Verifier复核解码与报告。
+    - id: A14
+      status: implemented-with-evidence
+      evidence:
+        - integrations/shared/runtime.py
+        - tests/test_zhenxun_runtime.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A15
+      status: implemented-with-evidence
+      evidence:
+        - scripts/build_zhenxun.py
+        - tests/test_zhenxun_package.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A16
+      status: implemented-with-evidence
+      evidence:
+        - scripts/verify_zhenxun.py
+        - scripts/install_zhenxun.py
+        - tests/test_zhenxun_package.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A17
+      status: implemented-with-evidence
+      evidence:
+        - .github/workflows/zhenxun-preview.yml
+        - scripts/publish_zhenxun.py
+        - tests/test_zhenxun_package.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+    - id: A18
+      status: implemented-with-evidence
+      evidence:
+        - docs/zhenxun-preview-current.md
+        - docs/README.md
+        - docs/09-foundation.md
+        - docs/10-rendering.md
+        - readme/zhenxun.md
+        - .github/workflows/zhenxun-preview.yml
+        - tests/test_zhenxun_package.py
+      note: 已对照源码修正历史描述，提供完整当前使用说明并清晰区分历史记录和本轮验证；原业务行为未变，供新的独立Verifier复核。
+    - id: A19
+      status: implemented-with-evidence
+      evidence:
+        - src/farm_render/models.py
+        - integrations/shared/runtime.py
+        - tests/test_zhenxun_runtime.py
+      note: 已逐项核对当前源码与对应测试覆盖；此声明不是测试通过，正式结果由Runtime与独立Verifier给出。
+  checks:
+    - name:
+        text: documentation-diff
+        truncated: false
+      result: passed
+      note:
+        text: git diff --check退出0；更新内容仅文档/正式规格/发布目标记录。
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 仅本地Windows/Python3.12.14/Pillow12.3；其他CI矩阵未执行。
+      truncated: false
+    - text: 未访问真实玩家库、未启动宿主、未推送或部署。
+      truncated: false
+    - text: 历史455个作物阶段缺图引用保留占位行为。
+      truncated: false
+    - text: 作物Service迁移尚未实施，另仓库设计不纳入归档。
+      truncated: false
+  known_limits_truncated: false
+  review: null
+  submitted_at: 2026-10-26T04:35:00.062Z
+blockers: []
+verification:
+  candidate_id: 2e7d9479-6e65-480f-b4df-85f937519b86
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:dbb1408c-96f4-4483-8af0-3b2fbe54af09
+  iteration: 2
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: foundation-offline
+      name:
+        text: 完整离线核心/绘图/三端打包回归
+        truncated: false
+      argv_display:
+        - text: -NoProfile
+          truncated: false
+        - text: -Command
+          truncated: false
+        - text: $env:FARM_TEST_FONT='D:\Work\farm_service\fonts\Xiaolai-Regular.ttf';
+            $env:PYTHONIOENCODING='utf-8'; &
+            'D:\Work\farm\.release-cache\ci-aiohttp-20261023\Scripts\python.exe'
+            scripts/verify_foundation.py; exit $LASTEXITCODE
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 107377
+    - id: workflow-guards
+      name:
+        text: 工作流权限与发布边界静态检查
+        truncated: false
+      argv_display:
+        - text: scripts/check_workflows.py
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 110
+    - id: render-decode
+      name:
+        text: 本轮六种绘图样例与暖缓存验证
+        truncated: false
+      argv_display:
+        - text: -c
+          truncated: false
+        - text: import json; from pathlib import Path; from PIL import Image;
+            p=Path('runtime/archive-foundation-20261026');
+            d=json.loads((p/'benchmark.json').read_text(encoding='utf-8'));
+            assert len(d['measurements'])==6; assert all(r['warm_cache_hit'] for
+            r in d['measurements']); files=list(p.glob('farm-*')); assert
+            len(files)==6; [Image.open(f).verify() for f in files]; print('6
+            rendered files verified; all warm cache hits')
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 122
+  summary:
+    text: 新的独立只读Verifier完整核对brief四核心结构、三Spec与A1-A19，直接源码补齐过期图覆盖，并核查本candidate绑定Runtime三检查均exit0；复用219项离线记录（218通过、1项明确跳过）、工作流守卫和六图解码/暖缓存证据。A8/A18现行文档已与实现对齐，其余17项逐项核查通过；最后参考Builder交接，未重跑完整套件、修改业务/测试/文档/报告或操作玩家数据，未代用户接受或归档。
+    truncated: false
+  risks:
+    - text: 正式完整测试共219项，218通过；1项NoneBot宿主配置测试因本地缺Pydantic跳过，不计作通过。该项不属于本change真寻宿主配置验收。
+      truncated: false
+    - text: 仅本机Windows/Python3.12.14/Pillow12.3；工作流矩阵仅静态核对，Linux及Pillow10.4未在本轮运行。
+      truncated: false
+    - text: 未启动真实机器人、访问真实玩家库、验证公开下载、执行远端CI、发布或部署；历史455个缺图引用仍使用明确占位。
+      truncated: false
+    - text: 图索引为2026-10-15，相关路径过期或无覆盖；本轮以直接源码和正式日志补齐，未据旧图推断缺失。
+      truncated: false
+    - text: 作物Service迁移不属于本次归档范围且尚未实施。
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-10-26T04:40:15.168Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 独立只读验收完成：完整brief/Spec、实现、测试、配置和文档均已核对，最后参考Builder交接；绑定候选的Runtime
+        foundation-offline以退出码0完成，827基线文件、可复现目录导出与32项测试通过。A1-A8全部通过；未追加或自行重跑完整检查，未修改项目源文件。
+      truncated: false
+    completed_at: 2026-10-15T07:00:29.324Z
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: 用户明确要求在已确认的图片工具及绘图优化方案上执行开发；将共享农场渲染作为当前基础开发的范围补充，保留原业务验收项并追加图片验收。
+      truncated: false
+    completed_at: 2026-10-15T07:55:29.688Z
+  - goal_cycle: 2
+    iteration: 0
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native confirmed acceptance criteria changed
+      truncated: false
+    completed_at: 2026-10-15T08:23:15.134Z
+  - goal_cycle: 3
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 独立只读核对全部13项、完整规格、核心与渲染源码、测试/打包/导出脚本、正式Runtime日志和图片样例；复用匹配候选的45项正式检查，全部验收通过。图索引新增渲染未覆盖且旧文件metadata_changed，已直接源文件补齐，无需重复完整套件。
+      truncated: false
+    completed_at: 2026-10-15T08:40:00.608Z
+  - goal_cycle: 3
+    iteration: 1
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: 用户选择补齐真寻测试版：命令接入、打包工作流和安装脚本；将现有核心与渲染扩展为可安装真寻预览包，保留独立测试库和旧基线，不执行远端操作。
+      truncated: false
+    completed_at: 2026-10-15T09:24:24.236Z
+  - goal_cycle: 4
+    iteration: 0
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native confirmed acceptance criteria changed
+      truncated: false
+    completed_at: 2026-10-15T09:28:23.268Z
+  - goal_cycle: 5
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 独立只读核对完整brief、三份规格及18项验收，审阅核心/渲染、真寻接入、白名单构建/校验/安装/固定发布边界、工作流和测试文档。复用本候选正式Runtime的55项全回归、Pillow10.4下23项兼容检查及工作流守卫，全部通过；未重复完整套件。图索引旧/新增缺覆盖，已直接源码补齐。未修改实现或正式规格，未访问远端、安装/启动机器人或代用户接受。
+      truncated: false
+    completed_at: 2026-10-15T09:51:26.860Z
+  - goal_cycle: 5
+    iteration: 1
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: 独立验收指出余额不足错误码映射缺少insufficient_funds；保持已确认范围，补中文提示及回归测试后重新交付。
+      truncated: false
+    completed_at: 2026-10-15T09:52:02.989Z
+  - goal_cycle: 5
+    iteration: 2
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 独立只读核对完整brief、三份规格和18项，审阅核心/渲染/真寻接入、白名单构建/校验/安装/固定发布边界、测试工作流与文档。当前candidate绑定Runtime的56项完整回归、Pillow10.4下24项及工作流守卫均退出码0；日志前缀658580e0与当前cedb操作绑定已核实。额外只读确认最终ZIP30文件且runtime匹配修复源码，余额不足中文提示与无扣款回归通过。图索引过期/缺覆盖已直接源码补齐，未重复完整套件、修改实现或正式文件、远端操作、安装启动宿主或代用户接受。
+      truncated: false
+    completed_at: 2026-10-15T09:58:23.989Z
+  - goal_cycle: 5
+    iteration: 2
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: 用户实际测试要求默认字体：在真寻适配层默认复用宿主字体目录，保留显式字体覆盖和缺失时清楚提示；修复预览版默认不可绘图的接入遗漏。
+      truncated: false
+    completed_at: 2026-10-16T02:06:48.036Z
+  - goal_cycle: 5
+    iteration: 3
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 独立只读验收全部A1-A18：完整brief/三spec与当前字体实现、测试、文档已核对；复用此前未改变核心/渲染/发布的正式独立验收，并核实本候选绑定Runtime三检查exit0，实际58项完整与Pillow10.4下26项通过。真寻FONT_PATH为resources/font，接入层默认选宿主字体，坏默认跳过、显式覆盖优先，共享层未引入真寻路径；安装目录runtime/commands与主源SHA256一致。图索引不覆盖新文件或metadata_changed，已读源码补齐；未重跑完整测试、未修改项目文件、未启动宿主或访问远端。
+      truncated: false
+    completed_at: 2026-10-16T02:13:06.574Z
+  - goal_cycle: 5
+    iteration: 3
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: 用户要求修复迁移遗漏：恢复旧版用户面板素材、布局与经验进度语义并保留性能优化。
+      truncated: false
+    completed_at: 2026-10-16T02:17:50.690Z
+  - goal_cycle: 5
+    iteration: 4
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: "Builder handoff Runtime checks failed: all-offline"
+      truncated: false
+    completed_at: 2026-10-16T02:26:17.238Z
+  - goal_cycle: 5
+    iteration: 5
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 独立只读核对全部A1-A18、完整brief/三份Spec、相关实现与测试及本候选Runtime绑定。复用60项完整检查、Pillow10.4下28项及工作流守卫，均退出码0；未重跑完整套件。原面板底图/头像框/头像尺寸和信息已恢复，用户授权的槽位坐标校正经源码与1536样图核验；preview.3最终ZIP30文件与当前安装目录逐文件相同，renderer匹配源码。未修改实现/正式规格、操作远端、真实玩家库或启动宿主。
+      truncated: false
+    completed_at: 2026-10-16T02:31:02.032Z
+  - goal_cycle: 5
+    iteration: 5
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: 用户明确要求执行统一图片质量配置，默认75、范围1至95，仅我的农场允许高清覆盖；其他图片禁止高清，保留仓库文字和分页。修订用户可见要求。
+      truncated: false
+    completed_at: 2026-10-22T09:37:42.325Z
+  - goal_cycle: 6
+    iteration: 1
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: "Native formal documents are invalid (brief-structure-missing: brief.md)"
+      truncated: false
+    completed_at: 2026-10-26T04:22:42.893Z
+  - goal_cycle: 7
+    iteration: 1
+    attempt: 1
+    outcome: fail
+    unresolved_ids:
+      - A8
+      - A18
+    summary:
+      text: 新的独立只读Verifier核对完整brief、三Spec及全部19项；brief四核心结构有效。复用当前candidate绑定Runtime三项退出0检查，未重跑完整套件。17通过，A8和A18因现行文档陈旧/缺失失败，修复说明后再验收；无需据此修改业务。独立核验完成后最后参考Builder交接，其文档证据不足。未修改业务、测试、规格、报告或玩家数据，未接受结果或归档。
+      truncated: false
+    completed_at: 2026-10-26T04:31:34.844Z
+  - goal_cycle: 7
+    iteration: 2
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 新的独立只读Verifier完整核对brief四核心结构、三Spec与A1-A19，直接源码补齐过期图覆盖，并核查本candidate绑定Runtime三检查均exit0；复用219项离线记录（218通过、1项明确跳过）、工作流守卫和六图解码/暖缓存证据。A8/A18现行文档已与实现对齐，其余17项逐项核查通过；最后参考Builder交接，未重跑完整套件、修改业务/测试/文档/报告或操作玩家数据，未代用户接受或归档。
+      truncated: false
+    completed_at: 2026-10-26T04:40:15.168Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-10-15T06:34:33.214Z
