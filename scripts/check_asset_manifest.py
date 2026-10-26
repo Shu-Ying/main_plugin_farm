@@ -3,7 +3,13 @@
 import hashlib
 import json
 from pathlib import Path
+import sys
 from zipfile import ZipFile
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'src'))
+from farm_core.catalogue_release import parse_manifest
+from farm_render.catalogue_bundle import ROOTS
 
 
 def check(root):
@@ -19,12 +25,13 @@ def check(root):
     with ZipFile(bundle) as archive:
         if set(archive.namelist()) != set(metadata['images']):
             raise ValueError('Asset manifest and layout differ')
-    for source, prefix in (
-        ('github', 'https://raw.githubusercontent.com/Shu-Ying/'
-                   'farm_service/main/assets/assets.zip'),
-        ('gitea', 'https://gitea.diuse.work/Diuse/farm_service/'
-                  'raw/branch/main/assets/assets.zip'),
-    ):
+    bootstrap = parse_manifest((Path(root) / 'src/farm_core/data/'
+                                'catalogue-manifest.json').read_bytes())
+    if manifest.get('catalogue_release') != bootstrap['release']:
+        raise ValueError('Bootstrap and asset release differ')
+    for name, base in ROOTS.items():
+        source = name.lower()
+        prefix = base + '/releases/' + bootstrap['release'] + '/assets.zip'
         if manifest['sources'][source] != prefix:
             raise ValueError('Asset source must use service repository')
     print('Verified external asset manifest and development ZIP')

@@ -11,6 +11,8 @@ from export_render_assets import export
 class RenderExportTests(unittest.TestCase):
     def test_export_preserves_published_land_numbering_and_calibration(self):
         _, metadata = export(ROOT)
-        stored = (ROOT / "src/farm_render/data/metadata.json").read_bytes()
-        self.assertEqual(json.loads(metadata), json.loads(stored))
-        self.assertEqual(metadata, stored)
+        data = json.loads(metadata)
+        self.assertEqual(len(data['plants']), 202)
+        self.assertEqual(len(data['positions']), 30)
+        self.assertEqual(data['placement']['mode'], 'visible_contact_center')
+        self.assertEqual(metadata, export(ROOT)[1])

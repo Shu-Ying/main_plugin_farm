@@ -109,9 +109,10 @@ RenderService默认一个绘图任务，最多8个活跃/排队的不同请求�
 
 ## 素材完整性与来源
 
-scripts/export_render_assets.py将已有素材原样打包，附202种作物
-展示配置、旧布局和统一定位规则；额外打包新提取的 40 张网页素材。
---check比对确定性输出与原图哈希，不修改旧基线。
+现行素材及展示配置由Service的catalogue/source维护，作为完整版本发布，
+插件启动时统一选择；见[作物数据维护](catalogue-updates.md)。
+scripts/export_render_assets.py仅保留显式旧基线导出；默认--check核对
+当前bootstrap，不再把日常配置绑定到旧库。
 素材包约束为安装资源，不按用户输入路径访问任意文件、不解压到磁盘。
 保留GPL及原始归属；历史素材分发权仍需在公开发布前核实。
 

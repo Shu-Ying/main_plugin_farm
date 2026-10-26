@@ -119,9 +119,10 @@ def export(root):
     ) for theme in ("default", "spring", "summer", "autumn", "winter", "bee")]
     paths += list((source / "background/decorateIcon").glob("decorate_*.png"))
     layout = json.loads((legacy / "config/soil.json").read_bytes())
-    catalogue = json.loads((
-        root / "src/farm_core/data/plants.json"
-    ).read_bytes())
+    from export_catalogue import export as export_legacy_catalogue
+    catalogue = json.loads(export_legacy_catalogue(
+        legacy / 'resource/db/plant.db',
+    ))
     metadata = {
         "schema": 1, "canvas": [3072, 1872], "soil_size": layout["size"],
         "positions": [layout["soil"][str(i)] for i in range(1, 31)],
@@ -188,10 +189,19 @@ def main():
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
+    parser.add_argument('--legacy-reference', action='store_true')
+    parser.add_argument('--output', type=Path)
     args = parser.parse_args()
+    if args.check and not args.legacy_reference:
+        from check_catalogue_bootstrap import check
+        check(root)
+        return
+    if not args.legacy_reference or args.output is None:
+        parser.error('Daily updates use Service prepare_catalogue.py; '
+                     'legacy export requires --legacy-reference --output')
     files = (*zip(("assets.zip", "metadata.json"), export(root)),
              ('land-soils.zip', export_soils(root)))
-    destination = root / "src/farm_render/data"
+    destination = args.output
     for name, content in files:
         path = destination / name
         if args.check:

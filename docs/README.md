@@ -6,6 +6,7 @@
 
 | 文档 | 用途 |
 |---|---|
+| [catalogue-updates.md](catalogue-updates.md) | Service 作物维护、发布、启动更新、缓存与兼容回滚 |
 | [23-seasonal-events-and-rust-service.md](23-seasonal-events-and-rust-service.md) | 节日活动交互备选、Rust 发布中心、同步、资产事务、过期清理与上线规划（草案） |
 | [09-foundation.md](09-foundation.md) | 已实现的第一批核心、API、测试与限制 |
 | [10-rendering.md](10-rendering.md) | 共享图片工具、农场绘制、缓存、编码与接入 |

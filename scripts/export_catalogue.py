@@ -37,14 +37,24 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--source", type=Path,
-        default=root / "legacy/zhenxun_plugin_farm/resource/db/plant.db",
+        default=None,
     )
     parser.add_argument(
         "--output", type=Path,
-        default=root / "src/farm_core/data/plants.json",
+        default=None,
     )
     parser.add_argument("--check", action="store_true")
+    parser.add_argument('--legacy-reference', action='store_true')
     args = parser.parse_args()
+    if args.check and args.source is None:
+        from check_catalogue_bootstrap import check
+        check(root)
+        return
+    if not args.legacy_reference or args.output is None:
+        parser.error('Daily updates use sync_catalogue_bootstrap.py; '
+                     'legacy export requires --legacy-reference --output')
+    if args.source is None:
+        args.source = root / 'legacy/zhenxun_plugin_farm/resource/db/plant.db'
     content = export(args.source)
     if args.check:
         if not args.output.is_file() or args.output.read_bytes() != content:

@@ -27,6 +27,12 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         module.__path__ = [str(self.root / "built/repository")]
         sys.modules[self.package] = module
         self.module = importlib.import_module(self.package + ".runtime")
+        offline = patch(
+            self.package + '._vendor.farm_render.catalogue_bundle._fetch',
+            side_effect=OSError('offline fixture'),
+        )
+        offline.start()
+        self.addCleanup(offline.stop)
         self.runtime = self.module.Runtime(self.root / "data", choose_font())
         self.seed_assets(self.runtime)
         await self.runtime.start()
@@ -77,6 +83,133 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn('参数有误', await self.call('farm', alias))
         for action in ('seeds', 'crops'):
             self.assertIsInstance(await self.call(action, '1'), bytes)
+
+    async def test_catalogue_is_loaded_once_before_store_initialization(self):
+        import json
+        from unittest.mock import AsyncMock
+
+        await self.call('register')
+        await self.call('buy', '胡萝卜 1', message='seed')
+        await self.call('sow', '胡萝卜 1', message='sow')
+        before = await self.runtime.service.snapshot(self.runtime_identity())
+        await self.runtime.close()
+        bundle = importlib.import_module(
+            self.package + '._vendor.farm_render.catalogue_bundle',
+        )
+        original = bundle._bootstrap()
+        document = json.loads((ROOT / 'src/farm_core/data/plants.json')
+                              .read_bytes())
+        document['plants'][0]['price'] = 99
+        document['plants'][0]['harvest'] = 999
+        updated = replace(original, catalogue=self.module.Catalogue.loads(
+            json.dumps(document),
+        ))
+        self.runtime = self.module.Runtime(self.root / 'data', choose_font())
+        self.seed_assets(self.runtime)
+        with patch.object(self.module, 'load_catalogue_release',
+                          return_value=updated) as load:
+            await asyncio.gather(self.runtime.start(), self.runtime.start())
+            await self.runtime.start()
+            self.assertEqual(load.call_count, 1)
+        self.assertEqual(self.runtime.service.catalogue.get_by_id(1).price, 99)
+        after = await self.runtime.service.snapshot(self.runtime_identity())
+        self.assertEqual(after.plots[0].plant, before.plots[0].plant)
+        self.assertNotEqual(after.plots[0].plant.harvest, 999)
+
+    async def test_close_during_catalogue_load_does_not_start_service(self):
+        import threading
+
+        await self.runtime.close()
+        bundle = importlib.import_module(
+            self.package + '._vendor.farm_render.catalogue_bundle',
+        )
+        snapshot = bundle._bootstrap()
+        entered, release = threading.Event(), threading.Event()
+        def slow(*args):
+            entered.set()
+            if not release.wait(5):
+                raise TimeoutError('fixture did not release')
+            return snapshot
+        self.runtime = self.module.Runtime(self.root / 'other', choose_font())
+        with patch.object(self.module, 'load_catalogue_release',
+                          side_effect=slow):
+            starting = asyncio.create_task(self.runtime.start())
+            await asyncio.wait_for(asyncio.to_thread(entered.wait), 2)
+            closing = asyncio.create_task(self.runtime.close())
+            await asyncio.sleep(0)
+            release.set()
+            await asyncio.gather(starting, closing)
+        self.assertFalse(self.runtime.started)
+        self.assertFalse((self.root / 'other/farm.sqlite3').exists())
+
+    async def test_close_during_id_read_prevents_later_start(self):
+        await self.runtime.close()
+        self.runtime = self.module.Runtime(self.root / 'other', choose_font())
+        self.seed_assets(self.runtime)
+        entered, release = asyncio.Event(), asyncio.Event()
+        async def slow_ids():
+            entered.set()
+            await release.wait()
+            return set()
+        with patch.object(self.runtime.store, 'catalogue_ids',
+                          side_effect=slow_ids):
+            starting = asyncio.create_task(self.runtime.start())
+            await entered.wait()
+            await self.runtime.close()
+            release.set()
+            await starting
+        self.assertFalse(self.runtime.started)
+        self.assertFalse((self.root / 'other/farm.sqlite3').exists())
+
+    async def test_cancelled_start_drains_catalogue_download(self):
+        import threading
+
+        await self.runtime.close()
+        bundle = importlib.import_module(
+            self.package + '._vendor.farm_render.catalogue_bundle',
+        )
+        snapshot = bundle._bootstrap()
+        entered, release, finished = (threading.Event() for _ in range(3))
+        def slow(*args):
+            entered.set()
+            if not release.wait(5):
+                raise TimeoutError('fixture did not release')
+            finished.set()
+            return snapshot
+        self.runtime = self.module.Runtime(self.root / 'other', choose_font())
+        with patch.object(self.module, 'load_catalogue_release',
+                          side_effect=slow):
+            starting = asyncio.create_task(self.runtime.start())
+            await asyncio.wait_for(asyncio.to_thread(entered.wait), 2)
+            starting.cancel()
+            await asyncio.sleep(0.01)
+            self.assertFalse(starting.done())
+            release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await starting
+        self.assertTrue(finished.is_set())
+        self.assertIsNone(self.runtime.log_handler)
+        self.assertFalse(self.runtime.started)
+
+    async def test_close_during_initialization_prevents_later_start(self):
+        await self.runtime.close()
+        self.runtime = self.module.Runtime(self.root / 'other', choose_font())
+        self.seed_assets(self.runtime)
+        entered, release = asyncio.Event(), asyncio.Event()
+        initialize = self.runtime.store.initialize
+        async def slow_initialize(**kwargs):
+            await initialize(**kwargs)
+            entered.set()
+            await release.wait()
+        with patch.object(self.runtime.store, 'initialize',
+                          side_effect=slow_initialize):
+            starting = asyncio.create_task(self.runtime.start())
+            await entered.wait()
+            await self.runtime.close()
+            release.set()
+            await starting
+        self.assertFalse(self.runtime.started)
+        self.assertIsNone(self.runtime.rendering)
 
     async def test_land_upgrade_command_conditions_charge_and_replay(self):
         self.assertEqual(self.module.COMMANDS['土地升级'], 'upgrade')
@@ -577,6 +710,8 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         for resource in ('assets', 'font'):
             other = self.module.Runtime(self.root / ('stop-' + resource))
             self.seed_assets(other)
+            if resource == 'assets':
+                next((other.data_dir / 'assets').glob('*/assets.zip')).unlink()
             try:
                 with patch.object(self.module, 'ensure_' + resource,
                                   side_effect=TimeoutError()) as fetch:
@@ -598,6 +733,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
                             await asyncio.sleep(0)
                         self.assertEqual(fetch.call_count, 1)
                 await other.close()
+                self.seed_assets(other)
                 await other.start()
                 self.assertIsNotNone(other.rendering)
             finally:
@@ -614,6 +750,8 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         ):
             other = self.module.Runtime(self.root / ('failed-' + resource))
             self.seed_assets(other)
+            if resource == 'assets':
+                next((other.data_dir / 'assets').glob('*/assets.zip')).unlink()
             try:
                 with patch.object(self.module, 'ensure_' + resource,
                                   side_effect=failure), \

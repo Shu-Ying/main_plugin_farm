@@ -146,7 +146,12 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
                     Path(choose_font()).read_bytes())
                 (fonts / 'OFL-Xiaolai.txt').write_bytes((ROOT /
                     'src/farm_render/data/OFL-Xiaolai.txt').read_bytes())
-                await plugin.initialize()
+                with patch(
+                    package.__name__ +
+                    '._vendor.farm_render.catalogue_bundle._fetch',
+                    side_effect=OSError('offline fixture'),
+                ):
+                    await plugin.initialize()
                 self.assertEqual(set(commands), set(main.COMMANDS))
 
                 class Event:

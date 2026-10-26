@@ -46,12 +46,13 @@ class BundleTests(unittest.TestCase):
             bundle.ensure_assets(self.root / 'gitea', 'Gitea')
             self.assertEqual(fetch.call_args.args[0],
                 'https://gitea.diuse.work/Diuse/farm_service/'
-                'raw/branch/main/assets/assets.zip')
+                'raw/branch/main/catalogue/releases/'
+                + self.expected['catalogue_release'] + '/assets.zip')
             bundle.ensure_assets(self.root / 'service', 'farm_service',
                                  'https://farm.example/prefix/')
             self.assertEqual(fetch.call_args.args[0],
-                'https://farm.example/prefix/v1/assets/'
-                + self.expected['sha256'] + '/assets.zip')
+                'https://farm.example/prefix/v1/catalogue/releases/'
+                + self.expected['catalogue_release'] + '/assets.zip')
 
     def test_failed_download_leaves_no_partial_and_wrong_hash_is_rejected(self):
         def corrupt(url, destination, limit):
