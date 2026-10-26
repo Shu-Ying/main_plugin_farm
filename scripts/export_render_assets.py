@@ -170,12 +170,27 @@ def export(root):
     ).encode("utf-8")
 
 
+def export_soils(root):
+    """小型升级土地图随插件内置，不改变既有外部素材包摘要。"""
+    output = BytesIO()
+    source = root / 'legacy/zhenxun_plugin_farm/resource'
+    with ZipFile(output, 'w', compression=ZIP_STORED) as bundle:
+        for name in ('红土地', '黑土地', '金土地'):
+            path = f'soil/{name}.png'
+            item = ZipInfo(path, (2020, 1, 1, 0, 0, 0))
+            item.create_system = 3
+            item.external_attr = 0o100644 << 16
+            bundle.writestr(item, (source / path).read_bytes())
+    return output.getvalue()
+
+
 def main():
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    files = zip(("assets.zip", "metadata.json"), export(root))
+    files = (*zip(("assets.zip", "metadata.json"), export(root)),
+             ('land-soils.zip', export_soils(root)))
     destination = root / "src/farm_render/data"
     for name, content in files:
         path = destination / name

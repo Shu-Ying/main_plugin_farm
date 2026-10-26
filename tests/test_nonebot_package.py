@@ -29,9 +29,19 @@ class NoneBotPackageTests(unittest.TestCase):
             ROOT / "integrations/shared/runtime.py"
         ).read_bytes())
         for suffix in ("farm_core/data/plants.json",
-                       "farm_render/data/asset-manifest.json"):
+                       "farm_render/data/asset-manifest.json",
+                       "farm_render/data/font-manifest.json",
+                       "farm_render/data/OFL-Xiaolai.txt"):
             self.assertTrue(any(name.endswith(suffix) for name in self.files))
         self.assertEqual(verify_files(self.files)["target"], "nonebot")
+        self.assertFalse(any(name.endswith('.ttf') for name in self.files))
+        for name in ("font-manifest.json", "OFL-Xiaolai.txt"):
+            self.assertEqual(
+                self.files[
+                    "nonebot_plugin_farm/_vendor/farm_render/data/" + name
+                ],
+                (ROOT / "src/farm_render/data" / name).read_bytes(),
+            )
         self.assertIn("pyproject.toml", self.files)
         self.assertIn(".github/workflows/publish.yaml", self.files)
         self.assertFalse(any("legacy/" in name for name in self.files))

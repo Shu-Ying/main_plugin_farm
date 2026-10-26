@@ -12,11 +12,16 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 from build_zhenxun import build as build_shared, read_version, source_identity
 from verify_astrbot import MANIFEST, ROOT_NAME, verify_files, verify_package
 from verify_zhenxun import read_package as read_shared
+from help_image import build_help_image
 
 
 def render_readme(root):
     template = (root / 'readme/astrbot.md').read_text(encoding='utf-8')
     marker = '<!-- FARM_COMMANDS -->'
+    if marker not in template:
+        if './images/help-astrbot.png' not in template:
+            raise ValueError('AstrBot README requires its help menu image')
+        return template.encode('utf-8')
     if template.count(marker) != 1:
         raise ValueError('AstrBot README requires one command marker')
     definitions = runpy.run_path(str(root / 'src/farm_core/commands.py'))
@@ -32,7 +37,7 @@ def render_readme(root):
     return template.replace(marker, '\n'.join(lines)).encode('utf-8')
 
 
-def build(root, output):
+def build(root, output, *, help_image=None):
     root, output = Path(root).resolve(), Path(output).resolve()
     version = read_version(root)
     if output.exists():
@@ -53,6 +58,9 @@ def build(root, output):
     files['logo.png'] = (root / 'logo-astrbot.png').read_bytes()
     files['logo-readme.png'] = (root / 'logo.png').read_bytes()
     files['images/farm-preview.png'] = shared['images/farm-preview.png']
+    files['images/help-astrbot.png'] = build_help_image(
+        root, 'astrbot', help_image,
+    )
     files['README.md'] = render_readme(root)
     files['runtime.py'] = (
         root / 'integrations/shared/runtime.py'
@@ -99,6 +107,8 @@ def build(root, output):
             item.external_attr = 0o100644 << 16
             archive.writestr(item, content)
     verify_package(archive_path)
+    if archive_path.stat().st_size > 16_000_000:
+        raise ValueError('AstrBot plugin ZIP exceeds 16 MB')
     digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
     archive_path.with_suffix('.zip.sha256').write_text(
         f'{digest}  {archive_path.name}\n', encoding='ascii',
@@ -109,8 +119,10 @@ def build(root, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--help-image', type=Path)
     args = parser.parse_args()
-    print(build(Path(__file__).resolve().parents[1], args.output))
+    print(build(Path(__file__).resolve().parents[1], args.output,
+                help_image=args.help_image))
 
 
 if __name__ == '__main__':

@@ -41,7 +41,12 @@ foreach ($farmCandidate in $farmCandidates) {
     try {
         $farmExe = $farmCandidate.Exe
         $farmPrefix = $farmCandidate.Prefix
-        & $farmExe @farmPrefix -c 'import sys; sys.exit(sys.version_info < (3, 10))'
+        $farmProbe = 'import sys, importlib.util; sys.exit(' +
+            'sys.version_info < (3, 10) or ' +
+            'importlib.util.find_spec("PIL") is None)'
+        # Windows PowerShell 5.1 rewrites quotes in native arguments.
+        # Use stdin instead of -c; keep this script ASCII for PS 5.1.
+        $farmProbe | & $farmExe @farmPrefix -
         if ($LASTEXITCODE -eq 0) {
             $farmPython = $farmCandidate
             break
@@ -51,7 +56,8 @@ foreach ($farmCandidate in $farmCandidates) {
     }
 }
 if (-not $farmPython) {
-    Write-Error 'Python 3.10+ not found. Install Python or set FARM_PYTHON.'
+    Write-Error ('Python 3.10+ with Pillow not found. ' +
+        'Install Python/Pillow or set FARM_PYTHON.')
     exit 1
 }
 

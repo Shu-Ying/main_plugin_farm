@@ -64,6 +64,21 @@ def main():
             for tokens in install_commands
         ):
             raise ValueError("Full test suite requires AstrBot dependencies")
+    for platform, workflow in (
+        ('zhenxun', source), ('nonebot', nonebot), ('astrbot', astrbot),
+    ):
+        steps = workflow['jobs']['build']['steps']
+        generation = next((i for i, step in enumerate(steps)
+                           if 'scripts/preview_help.py' in step.get('run', '')),
+                          None)
+        build = next((i for i, step in enumerate(steps)
+                      if f'scripts/build_{platform}.py'
+                      in step.get('run', '')), None)
+        if generation is None or build is None or generation >= build:
+            raise ValueError('Help menu must be generated before packaging')
+        if (f'--platform {platform}' not in steps[generation]['run']
+                or f'help-{platform}.png' not in steps[build]['run']):
+            raise ValueError('Workflow help image platform mismatch')
     if nonebot["permissions"] != {"contents": "read"}:
         raise ValueError("NoneBot source permissions differ")
     trigger = nonebot["on"]

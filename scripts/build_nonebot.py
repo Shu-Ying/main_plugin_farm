@@ -10,9 +10,10 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 from build_zhenxun import read_version, source_identity
 from verify_nonebot import MANIFEST, ROOT_NAME, verify_files, verify_package
+from help_image import build_help_image
 
 
-def build(root, output):
+def build(root, output, *, help_image=None):
     root, output = Path(root).resolve(), Path(output).resolve()
     version = read_version(root)
     if output.exists():
@@ -20,6 +21,9 @@ def build(root, output):
     if output.is_relative_to(root) and not output.is_relative_to(root / "dist"):
         raise ValueError("In-project output must be inside dist")
     files = {}
+    files['images/help-nonebot.png'] = build_help_image(
+        root, 'nonebot', help_image,
+    )
     prefix = ROOT_NAME + "/"
     integration = root / "integrations/nonebot"
     for name in ("__init__.py", "config.py", "commands.py", "data_paths.py"):
@@ -33,7 +37,8 @@ def build(root, output):
         source = root / "src" / package
         selected = list(source.glob("*.py")) + [
             path for path in (source / "data").iterdir()
-            if path.suffix in (".json", ".md")
+            if path.suffix in (".json", ".md", ".zip", ".txt")
+            and path.name != 'assets.zip'
         ]
         for path in selected:
             if path.is_symlink():
@@ -96,8 +101,10 @@ def build(root, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument('--help-image', type=Path)
     args = parser.parse_args()
-    print(build(Path(__file__).resolve().parents[1], args.output))
+    print(build(Path(__file__).resolve().parents[1], args.output,
+                help_image=args.help_image))
 
 
 if __name__ == "__main__":

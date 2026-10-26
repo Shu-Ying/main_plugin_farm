@@ -35,16 +35,20 @@
 - [真寻](https://github.com/Shu-Ying/zhenxun_plugin_farm)
 - [Nonebot](https://github.com/Shu-Ying/nonebot_plugin_farm)
 - [Astrbot](https://github.com/Shu-Ying/astrbot_plugin_farm)
-  
-`如果没有你需要的框架，那么请在本仓库提交issue吧，我会尽量迁移的（其实是用AI）`
+
+`如果没有你需要的框架，那么请在本仓库提交issue吧，Codex会尽量迁移的`
 
 ## 开源协议
 本项目采用的是`GPLv3`许可证进行开源
+
+默认使用的小赖字体由 farm_service 分发，单独遵循 `SIL OFL 1.1`，完整版权声明与许可见
+[OFL-Xiaolai.txt](./src/farm_render/data/OFL-Xiaolai.txt)。
 
 
 ## 致谢
 
 - [QQ农场](https://qqnc.qq.com/) *绝大多数的素材来源*
+- [小赖字体](https://github.com/lxgw/kose-font) *lxgw 提供的开源中文手写字体，采用 SIL OFL 1.1，随包附带完整字体许可*
 - [Nonebot2](https://github.com/nonebot/nonebot2) *✨ 跨平台 Python 异步机器人框架 ✨*
 - [zhenxun_bot](https://github.com/zhenxun-org/zhenxun_bot) *最爱真寻的一集*
 - [HibiKier](https://github.com/HibiKier) *阿咪为什么是神*

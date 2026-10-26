@@ -22,7 +22,7 @@ version = {file = "version.txt"}
 
 [tool.setuptools.package-data]
 farm_core = ["data/*.json"]
-farm_render = ["data/*.json", "data/*.zip", "data/*.md"]
+farm_render = ["data/*.json", "data/*.zip", "data/*.md", "data/*.txt"]
 
 [tool.ruff]
 line-length = 80

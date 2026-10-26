@@ -52,12 +52,10 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
             ROOT / 'integrations/astrbot/CHANGELOG.md'
         ).read_bytes())
         readme = files['README.md'].decode()
-        self.assertIn('/main/logo-readme.png', readme)
+        self.assertIn('logo.png', readme)
         self.assertIn('width="400"', readme)
         self.assertNotIn('<!-- FARM_COMMANDS -->', readme)
-        self.assertIn('/农场帮助 [文字]', readme)
-        self.assertIn('/开垦 条件', readme)
-        self.assertIn('raw.githubusercontent.com', readme)
+        self.assertIn('images/help-astrbot.png', readme)
         self.assertIn('images/farm-preview.png', files)
         self.assertFalse(any(name.endswith('/assets.zip') for name in files))
         from verify_astrbot import verify_package
@@ -124,8 +122,13 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
             try:
                 main = importlib.import_module(package.__name__ + '.main')
                 plugin = main.FarmPlugin(object(), {
-                    'font_path': str(choose_font()), 'image_quality': 55,
+                    'font_path': 'ignored-custom.ttf',
+                    'data_dir': str(self.root / 'existing-custom-data'),
+                    'image_quality': 55,
                 })
+                self.assertEqual(plugin.runtime.data_dir,
+                                 (self.root / 'existing-custom-data').resolve())
+                self.assertIsNone(plugin.runtime.font_path)
                 # 使用真实开发素材预置缓存，模拟宿主测试不访问网络。
                 manifest = json.loads((ROOT /
                     'src/farm_render/data/asset-manifest.json').read_bytes())
@@ -134,6 +137,15 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
                 cached.parent.mkdir(parents=True, exist_ok=True)
                 cached.write_bytes((ROOT /
                     'src/farm_render/data/assets.zip').read_bytes())
+                font_manifest = json.loads((ROOT /
+                    'src/farm_render/data/font-manifest.json').read_bytes())
+                fonts = (plugin.runtime.data_dir / 'fonts'
+                         / font_manifest['sha256'])
+                fonts.mkdir(parents=True, exist_ok=True)
+                (fonts / 'Xiaolai-Regular.ttf').write_bytes(
+                    Path(choose_font()).read_bytes())
+                (fonts / 'OFL-Xiaolai.txt').write_bytes((ROOT /
+                    'src/farm_render/data/OFL-Xiaolai.txt').read_bytes())
                 await plugin.initialize()
                 self.assertEqual(set(commands), set(main.COMMANDS))
 
@@ -207,12 +219,24 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
                     self.assertLess(green, 90)
                     self.assertLess(blue, 90)
                 self.assertIn('仅我的农场', await call('我的种子 高清'))
-                self.assertIn('暂无种子', await call('我的种子 文字'))
+                self.assertIn('参数有误', await call('我的种子 文字'))
                 self.assertTrue(
-                    (self.root / 'plugin-data/farm.sqlite3').is_file(),
+                    (self.root / 'existing-custom-data/farm.sqlite3').is_file(),
+                )
+                self.assertFalse(
+                    (self.root / 'plugin-data/farm.sqlite3').exists(),
                 )
                 await plugin.terminate()
                 self.assertFalse(plugin.runtime.started)
+                plugin = main.FarmPlugin(object(), {
+                    'data_dir': str(self.root / 'existing-custom-data'),
+                })
+                await plugin.initialize()
+                reopened = Event('开通农场')
+                reopened.message_obj = SimpleNamespace(message_id='after-reload')
+                response = [r async for r in plugin.farm(reopened)][0]
+                self.assertIn('农场已存在', response)
+                await plugin.terminate()
             finally:
                 if 'plugin' in locals() and plugin.runtime.started:
                     await plugin.terminate()

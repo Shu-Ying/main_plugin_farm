@@ -48,6 +48,15 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
                   / bundle.expected_manifest()['sha256'] / 'assets.zip')
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / 'src/farm_render/data/assets.zip', target)
+        fonts = importlib.import_module(
+            self.package + '._vendor.farm_render.font_bundle',
+        )
+        font_dir = (runtime.data_dir / 'fonts'
+                    / fonts.expected_manifest()['sha256'])
+        font_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(choose_font(), font_dir / 'Xiaolai-Regular.ttf')
+        shutil.copyfile(ROOT / 'src/farm_render/data/OFL-Xiaolai.txt',
+                        font_dir / 'OFL-Xiaolai.txt')
 
     async def call(self, action, arguments="", message="event", **changes):
         return await self.runtime.execute(
@@ -55,12 +64,60 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
             **{**self.context, "message_id":message, **changes},
         )
 
+    async def test_removed_commands_and_text_options(self):
+        for platform in ('zhenxun', 'nonebot', 'astrbot'):
+            self.assertNotIn('我的农场币', self.module.command_map(platform))
+            self.assertNotIn('我的点券', self.module.command_map(platform))
+        await self.call('register')
+        for action in ('seeds', 'crops', 'help'):
+            for args in ('文字', '1 文字'):
+                with self.subTest(action=action, args=args):
+                    self.assertIn('参数有误', await self.call(action, args))
+        for alias in ('my-point', 'my-vipPoint'):
+            self.assertIn('参数有误', await self.call('farm', alias))
+        for action in ('seeds', 'crops'):
+            self.assertIsInstance(await self.call(action, '1'), bytes)
+
+    async def test_land_upgrade_command_conditions_charge_and_replay(self):
+        self.assertEqual(self.module.COMMANDS['土地升级'], 'upgrade')
+        await self.call('register')
+        from unittest.mock import AsyncMock
+        asset = importlib.import_module(
+            self.package + '._vendor.farm_core.domain',
+        ).Asset
+        def fund(repo):
+            repo.asset(asset.POINT, 999500)
+            repo.asset(asset.EXPERIENCE, 1000000)
+            return {}
+        await self.runtime.store.transact(self.runtime_identity(), 'fund',
+                                         'fixture', {}, 1000, fund)
+        with patch.object(self.runtime.service, 'upgrade',
+                          new=AsyncMock()) as upgrade:
+            condition = await self.call('upgrade', '1 条件', message=None)
+            self.assertIn('红土地', condition)
+            self.assertIn('200000', condition)
+            upgrade.assert_not_awaited()
+            self.assertIn('稳定消息标识', await self.call(
+                'upgrade', '1', message=None,
+            ))
+            upgrade.assert_not_awaited()
+        result = await self.call('upgrade', '1', message='upgrade-red')
+        self.assertIn('地块1已升为红土地', result)
+        self.assertEqual(result, await self.call(
+            'upgrade', '1', message='upgrade-red',
+        ))
+        snapshot = await self.runtime.service.snapshot(self.runtime_identity())
+        self.assertEqual(snapshot.account.point, 800000)
+        self.assertEqual(snapshot.plots[0].land_level, 1)
+        self.assertIn('地块不存在', await self.call('upgrade', '7'))
+        self.assertIn('请发送', await self.call('upgrade', '1 2'))
+
     async def test_plot_ids_command_registration_hint_and_read_only(self):
         from io import BytesIO
         from PIL import Image
         from unittest.mock import AsyncMock
         self.assertEqual(self.module.COMMANDS['地块编号'], 'plot_ids')
-        self.assertIn('地块编号', await self.call('help', '文字'))
+        self.assertIn('地块编号', self.module.help_text(self.runtime.command_specs))
         first = await self.call('register')
         self.assertIn('6块土地', first)
         self.assertIn('地块编号', first)
@@ -91,7 +148,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
             migrate.assert_not_awaited()
         with Image.open(BytesIO(image)) as decoded:
             self.assertEqual(decoded.width, 1200)
-        text = await self.call('help', '文字', message=None)
+        text = self.module.help_text(self.runtime.command_specs)
         for command in self.module.COMMANDS:
             self.assertIn(command, text)
         self.assertNotIn('购买农场币', text)
@@ -117,11 +174,11 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(render.await_args.args[-1], 91)
             self.runtime.image_quality_provider = lambda: False
             self.assertIn('图片质量配置无效', await self.call('help'))
-            self.assertIsInstance(await self.call('help', '文字'), str)
+            self.assertIsInstance(self.module.help_text(self.runtime.command_specs), str)
 
     async def test_reclaim_conditions_charge_replay_and_arguments(self):
         self.assertEqual(self.module.COMMANDS['开垦'], 'reclaim')
-        self.assertIn('开垦 条件', await self.call('help', '文字'))
+        self.assertIn('开垦 条件', self.module.help_text(self.runtime.command_specs))
         await self.call('register')
         who = self.runtime_identity()
         asset = importlib.import_module(
@@ -180,7 +237,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('仅我的农场支持高清', await self.call(
             'seeds', '1 高清', message=None,
         ))
-        self.assertIn('胡萝卜（#1） 2粒', await self.call(
+        self.assertIn('参数有误', await self.call(
             'seeds', '文字', message=None,
         ))
         self.assertEqual(before, await self.runtime.service.snapshot(
@@ -264,7 +321,7 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
                 with Image.open(BytesIO(content)) as image:
                     self.assertEqual(image.width, 1536)
 
-    async def test_only_farm_accepts_high_and_warehouse_keeps_text(self):
+    async def test_only_farm_accepts_high_and_text_option_is_removed(self):
         await self.call('register')
         for action in ('plot_ids', 'details', 'shop', 'seeds', 'crops'):
             for arguments in ('高清', '1 高清'):
@@ -273,9 +330,8 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
                         action, arguments, message=None,
                     ))
         for action in ('seeds', 'crops'):
-            self.assertIsInstance(await self.call(action, '1 文字'), str)
-        help_text = await self.call('help', '文字')
-        self.assertIn('仅我的农场支持高清', help_text)
+            self.assertIn('参数有误', await self.call(action, '1 文字'))
+        help_text = self.module.help_text(self.runtime.command_specs)
         self.assertNotIn('地块编号 [高清]', help_text)
         self.assertNotIn('[高清/文字]', help_text)
 
@@ -376,9 +432,8 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_pest_command_clears_pests_and_preserves_growth(self):
         self.assertEqual(self.module.COMMANDS["农场除虫"], "clear_pests")
-        help_text = await self.call("help", "文字")
+        help_text = self.module.help_text(self.runtime.command_specs)
         self.assertIn("每只虫", help_text)
-        self.assertIn("间隔至少2小时", help_text)
         self.runtime.service.clock = lambda: 1000
         await self.call("register")
         await self.call("buy", "白萝卜 1", "buy")
@@ -466,11 +521,11 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         await other.start()
         try:
             response = await other.execute("farm", "", **self.context)
-            self.assertIn("FARM_PREVIEW_FONT", response)
+            self.assertIn("小赖字体", response)
         finally:
             await other.close()
 
-    async def test_default_font_uses_host_resources_and_skips_broken_font(self):
+    async def test_default_font_uses_service_cache_xiaolai(self):
         fonts = self.root / "host-fonts"
         fonts.mkdir()
         (fonts / "HYWenHei-85W.ttf").write_bytes(b"broken")
@@ -482,11 +537,26 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
             self.assertIsNotNone(other.rendering)
             self.assertEqual(
                 other.rendering.renderer.font_path,
-                (fonts / "msyh.ttf").resolve(),
+                next((other.data_dir / "fonts").glob(
+                    "*/Xiaolai-Regular.ttf",
+                )).resolve(),
             )
             await other.execute("register", "", **self.context)
             result = await other.execute("farm", "", **self.context)
             self.assertIsInstance(result, bytes)
+        finally:
+            await other.close()
+
+    async def test_font_download_failure_keeps_text_commands_available(self):
+        other = self.module.Runtime(self.root / "offline-font")
+        self.seed_assets(other)
+        with patch.object(self.module, 'ensure_font', side_effect=OSError()):
+            await other.start()
+        try:
+            self.assertIsNone(other.rendering)
+            text = await other.execute("register", "", **self.context)
+            self.assertIsInstance(text, str)
+            self.assertIn("注册", text)
         finally:
             await other.close()
 
@@ -502,6 +572,59 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(other.rendering.renderer.font_path, explicit)
         finally:
             await other.close()
+
+    async def test_download_failure_stops_until_explicit_reload(self):
+        for resource in ('assets', 'font'):
+            other = self.module.Runtime(self.root / ('stop-' + resource))
+            self.seed_assets(other)
+            try:
+                with patch.object(self.module, 'ensure_' + resource,
+                                  side_effect=TimeoutError()) as fetch:
+                    with patch.object(self.module, 'monotonic',
+                                      return_value=1000, create=True):
+                        await other.start()
+                    self.assertTrue(other.started)
+                    self.assertIsNone(other.rendering)
+                    for now in (1001, 1061, 100000):
+                        with patch.object(self.module, 'monotonic',
+                                          return_value=now, create=True):
+                            await asyncio.gather(*(
+                                other.start() for _ in range(10)
+                            ))
+                            response = await other.execute(
+                                'help', '', **self.context,
+                            )
+                            self.assertIsInstance(response, str)
+                            await asyncio.sleep(0)
+                        self.assertEqual(fetch.call_count, 1)
+                await other.close()
+                await other.start()
+                self.assertIsNotNone(other.rendering)
+            finally:
+                await other.close()
+
+    async def test_resource_logs_identify_stage_without_private_errors(self):
+        from urllib.error import HTTPError
+
+        for resource, failure, reason in (
+            ('assets', HTTPError('https://private/token', 404,
+                                 'private-token', {}, None), 'http_404'),
+            ('font', ValueError('Font archive size or SHA256 mismatch'),
+             'integrity_mismatch'),
+        ):
+            other = self.module.Runtime(self.root / ('failed-' + resource))
+            self.seed_assets(other)
+            try:
+                with patch.object(self.module, 'ensure_' + resource,
+                                  side_effect=failure), \
+                        self.assertLogs(self.module.logger, 'WARNING') as logs:
+                    await other.start()
+                output = '\n'.join(logs.output)
+                self.assertIn('resource=' + resource, output)
+                self.assertIn('reason=' + reason, output)
+                self.assertNotIn('private', output)
+            finally:
+                await other.close()
 
     async def test_insufficient_funds_has_chinese_message_and_no_debit(self):
         await self.call("register")

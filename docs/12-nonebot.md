@@ -17,16 +17,19 @@ nonebot.load_plugin("nonebot_plugin_farm")
 可在 `.env` 中设置：
 
 ```dotenv
-FARM_FONT=C:/Windows/Fonts/msyh.ttc
 FARM_IMAGE_FORMAT=AUTO
 FARM_IMAGE_QUALITY=75
 FARM_DEPLOYMENT=nonebot
 ```
 
-`FARM_DATA_DIR` 可显式指定数据目录，默认沿用旧版插件 localstore 下的
+默认数据目录沿用旧版插件 localstore 下的
 `nonebot_plugin_farm/farm_db` 子目录。旧 `farm.db` 保留，首次使用按当前
 机器人和平台迁入 `farm.sqlite3`；遇到账号或平台冲突会拒绝覆盖。
-日志写入该目录的 `farm-preview.log`。字体不可用时提供文字响应。
+日志写入该目录的 `farm-preview.log`。默认使用由 farm_service 分发并缓存的小赖字体；
+字体不提供用户配置，旧的 `FARM_FONT` 不再读取；为避免旧存档被忽略，
+继续兼容 `FARM_DATA_DIR`，未配置或为空时使用默认目录，不自动搬动数据库。
+字体或素材下载失败时停止本次资源加载，保留文字功能，不自动重试；
+重新加载插件后才会再次尝试。日志区分资源类别和安全错误原因。
 
 `FARM_IMAGE_QUALITY` 为整数1～95，默认75，统一控制全部农场图片
 的编码质量；越高通常越清晰、文件越大，PNG无损格式不受此值影响。

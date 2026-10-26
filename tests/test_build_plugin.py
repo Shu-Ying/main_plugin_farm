@@ -25,7 +25,7 @@ class BuildPluginTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name == 'nt', 'Windows entry points')
     def test_cmd_entries_and_nonzero_failure(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(prefix='farm build ') as temporary:
             root = Path(temporary)
             env = {**os.environ, 'FARM_PYTHON': sys.executable,
                    'FARM_BUILD_NO_PAUSE': '1'}

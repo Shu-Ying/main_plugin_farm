@@ -22,9 +22,10 @@ NoneBot、AstrBot、真寻均可调用，不导入任何宿主对象。
 | src/farm_render/renderer.py | 底图、作物、账户面板、成图缓存 |
 | src/farm_render/service.py | 一次查询、后台执行、并发和取消管理 |
 
-字体由部署方提供可合法使用的中文 TrueType/OpenType 文件路径。
-示例使用本机已有微软雅黑；不会复制或发布 Windows 字体。Linux
-应配置包含中文的字体；测试可通过 FARM_TEST_FONT 指定路径。当前
+默认使用由 farm_service 分发并缓存的小赖字体（lxgw/kose-font v3.126），原版字体与
+完整 SIL OFL 1.1 许可一同分发，版权声明见
+`src/farm_render/data/OFL-Xiaolai.txt`。插件固定使用小赖字体，不提供
+字体路径配置；开发测试可通过 FARM_TEST_FONT 指定路径。当前
 实现校验字体可加载，不保证任意字体具备所有中文、Emoji 字形。
 
 ## 调用

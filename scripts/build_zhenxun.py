@@ -10,6 +10,7 @@ import subprocess
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 from verify_zhenxun import MANIFEST, ROOT_NAME, verify_files, verify_package
+from help_image import build_help_image
 
 
 def source_identity(root):
@@ -33,7 +34,7 @@ def read_version(root):
     return version
 
 
-def build(root, output):
+def build(root, output, *, help_image=None):
     root, output = Path(root).resolve(), Path(output).resolve()
     version = read_version(root)
     if output.exists():
@@ -44,6 +45,9 @@ def build(root, output):
         )):
             raise ValueError("Output must not be a source directory")
     files = {}
+    files['images/help-zhenxun.png'] = build_help_image(
+        root, 'zhenxun', help_image,
+    )
     integration = root / "integrations/zhenxun"
     for name in (
         "__init__.py", "commands.py", "data_paths.py",
@@ -58,7 +62,7 @@ def build(root, output):
         source = root / "src" / package
         selected = list(source.glob("*.py")) + [
             p for p in (source / "data").iterdir() if p.suffix in (
-                ".json", ".zip", ".md",
+                ".json", ".zip", ".md", ".txt",
             ) and p.name != 'assets.zip'
         ]
         for path in selected:
@@ -121,9 +125,10 @@ def build(root, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument('--help-image', type=Path)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
-    print(build(root, args.output))
+    print(build(root, args.output, help_image=args.help_image))
 
 
 if __name__ == "__main__":

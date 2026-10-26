@@ -142,6 +142,7 @@ class StealingTests(unittest.IsolatedAsyncioTestCase):
         with closing(sqlite3.connect(self.store.path)) as db, db:
             db.execute('DROP TABLE thefts')
             db.execute('ALTER TABLE plots DROP COLUMN stolen_count')
+            db.execute('ALTER TABLE plots DROP COLUMN land_level')
             db.execute('PRAGMA user_version=3')
         await self.store.initialize()
         self.assertEqual(await self.service.snapshot(self.owner), before)

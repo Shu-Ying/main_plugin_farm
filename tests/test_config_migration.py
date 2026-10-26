@@ -78,6 +78,10 @@ class ConfigMigrationTests(unittest.TestCase):
                 self.assertEqual(config().farm_image_quality, 75)
                 self.assertEqual(config().farm_resource_source, 'Github')
                 self.assertEqual(config().farm_service_url, '')
+                self.assertEqual(str(config(
+                    farm_data_dir='existing-custom-data',
+                ).farm_data_dir), 'existing-custom-data')
+                self.assertIsNone(config(farm_data_dir='').farm_data_dir)
                 for source in ('Github', 'Gitea', 'farm_service'):
                     selected = config(
                         farm_resource_source=source,

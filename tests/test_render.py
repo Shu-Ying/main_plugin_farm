@@ -60,6 +60,29 @@ class RenderTests(unittest.TestCase):
             self.assertEqual(canvas.image.getpixel((x-15, y))[:3],
                              ImageColor.getrgb(color))
 
+    def test_land_upgrade_sprites_and_both_caches_change(self):
+        baseline = snapshot()
+        options = RenderOptions(format='PNG')
+        original = self.renderer.render(self.who, baseline, 0, options)
+        for level, name in ((1, '红土地'), (2, '黑土地'), (3, '金土地')):
+            current = replace(baseline, plots=(
+                replace(baseline.plots[0], land_level=level),
+                *baseline.plots[1:],
+            ))
+            with patch.object(self.renderer.assets, 'image',
+                              wraps=self.renderer.assets.image) as read:
+                result = self.renderer.render(self.who, current, 0, options)
+            self.assertFalse(result.cache_hit)
+            self.assertNotEqual(result.content, original.content)
+            self.assertIn(f'soil/{name}.png',
+                          [call.args[0] for call in read.call_args_list])
+            self.assertTrue(self.renderer.render(
+                self.who, current, 0, options,
+            ).cache_hit)
+        self.assertEqual(self.renderer.render(
+            self.who, baseline, 0, options,
+        ).content, original.content)
+
     def test_plot_id_image_has_separate_cache_from_normal_farm(self):
         plain = self.renderer.render(self.who, snapshot(), 0)
         options = RenderOptions(show_plot_ids=True)
