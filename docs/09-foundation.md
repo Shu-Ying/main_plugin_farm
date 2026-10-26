@@ -1,6 +1,6 @@
 # 第一批基础核心实现
 
-日期：2026-10-15。对应 Comet change：farm-core-foundation。
+更新日期：2026-10-26。对应Comet change：farm-core-foundation。
 已确认规格位于 comet/changes/farm-core-foundation。
 本文件记录实现与开发期测试，不替代 Runtime 的独立验收报告。
 
@@ -22,11 +22,13 @@
 按职责先采用小模块；随着用例增加再拆分目录，
 不为了贴合远期目录树生成大量空包。
 核心只用标准库，不导入三框架，包内部相对导入。
-wheel 随包携带 JSON，不包含 legacy、图片、玩家数据库或其他框架入口。
+wheel随包携带JSON及小型升级土地素材，不包含legacy、玩家数据库或
+其他框架入口；大型图片ZIP通过匹配的外部资源提供。
 
 ## 已迁移与修复
 
-- 沿用500初始币、3地块、等级门槛及源作物价格/产量/经验/成熟时间。
+- 注册500初始币、6地块；可靠识别为初始3块的旧号一次性补3块，
+  保留已开垦成果。详见land-rules.md；价格/产量/成熟时间沿用目录。
 - 旧作物库202条记录完整导出且保留源 SHA-256。
 - 多季再生长间隔明确保留去重 phase[1:] 求和，未重平衡数值。
 - F01/F02：余额和经验只增加本次增量。
@@ -66,8 +68,9 @@ SchemaError 表示外来或不兼容库。接入层不能把后两者当作未�
 
 ## 持久化与取消语义
 
-新库使用独立 application_id、schema_version=1：
-accounts、inventory、plots、operations、ledger。
+新库使用独立application_id，当前schema_version=5，包含accounts、
+inventory、plots、operations、ledger及thefts。受支持旧schema按顺序
+事务升级；迁移失败整体回滚，不手工改版本号。
 未知表集、外来库或更高版本被拒绝，不把旧 farm.db 自动当新库打开。
 
 每次写用例使用新连接与 BEGIN IMMEDIATE；提交前统一写幂等结果。
@@ -93,12 +96,11 @@ close 拒绝新请求并等待在途任务，无导入时线程或持久数据�
 - 首次事务测试有2项因测试代码未关闭连接而在Windows清理失败；
   修复测试资源释放后通过，不隐藏该失败。
 - 最终结果以 Comet 管理的 verification.md 为准。
-- 真实框架、旧玩家库、联机、图片和远程发布没有测试或启用。
+- 上述计数为初期历史检查，不是当前完整套件计数；图片、接入与迁移
+  已有后续源码及离线测试，不因此声称真实宿主或生产玩家库已验证。
 
 ## 正式验收结果
 
-Runtime已执行完整离线检查并通过。
-独立只读Verifier核对A1至A8后全部判定通过，结果已由Runtime接收；
-正式报告为 comet/changes/farm-core-foundation/verification.md。
-通用Skill桥接不能机器认证独立执行身份，当前等待用户接受结果，
-尚未归档、提交或推送。此状态不等于三框架插件已发布。
+正式结果以Comet生成报告为准，不在本说明预先宣称本轮验收通过。
+当前真寻安装与维护见[zhenxun-preview-current.md](zhenxun-preview-current.md)。
+离线测试、模拟宿主与生产安装/远端发布分别记录，不互相替代。

@@ -1,7 +1,7 @@
 # 共享图片工具与“我的农场”
 
-状态：共享渲染已实现并通过离线检查和独立只读验收；等待用户接受。
-真实宿主命令与上传仍未接入。
+更新日期：2026-10-26。共享渲染和宿主接入已有实现；实际验收结果
+由Comet报告记录，模拟测试不能证明真实宿主消息发送或客户端显示。
 Python 语法基线3.10；本机实测 Windows/Python3.12.14/Pillow12.3.0。
 
 ## 安装与职责
@@ -25,7 +25,8 @@ NoneBot、AstrBot、真寻均可调用，不导入任何宿主对象。
 默认使用由 farm_service 分发并缓存的小赖字体（lxgw/kose-font v3.126），原版字体与
 完整 SIL OFL 1.1 许可一同分发，版权声明见
 `src/farm_render/data/OFL-Xiaolai.txt`。插件固定使用小赖字体，不提供
-字体路径配置；开发测试可通过 FARM_TEST_FONT 指定路径。当前
+字体路径网页配置；共享Runtime/绘图API支持显式路径，开发测试可通过
+FARM_TEST_FONT指定路径。当前
 实现校验字体可加载，不保证任意字体具备所有中文、Emoji 字形。
 
 ## 调用
@@ -33,7 +34,10 @@ NoneBot、AstrBot、真寻均可调用，不导入任何宿主对象。
 ```python
 from farm_render import FarmRenderer, RenderOptions, RenderService
 
-renderer = FarmRenderer("/path/to/chinese-font.ttf")
+# 素材准备在接入层完成；此处传入与包内清单匹配的本地缓存路径。
+renderer = FarmRenderer(
+    "/path/to/chinese-font.ttf", bundle_path=verified_bundle_path,
+)
 rendering = RenderService(renderer, concurrency=1, max_pending=8)
 try:
     picture = await rendering.my_farm(
@@ -60,7 +64,8 @@ now, options)，统一 now 使用UTC秒整数。正常未注册/存储故障仍�
 
 ## 尺寸、格式和质量
 
-- 普通：1024×624、quality75；RenderOptions.high() 为1536×936、85。
+- 普通默认1024×624、质量75；质量配置整数1～95、默认75。
+- 仅我的农场支持高清1536×936，质量max(配置值,85)，其他查询拒绝高清。
 - 编码格式独立：AUTO、WEBP、JPEG、PNG；WebP method默认2。
 - AUTO仅根据接入层声明的 supported 和本机编码能力选择，默认
   supported只有JPEG。确认平台支持后传入WEBP，才会优先使用它。
@@ -81,8 +86,9 @@ now, options)，统一 now 使用UTC秒整数。正常未注册/存储故障仍�
 
 布局使用旧30块地坐标。新播种及新一季使用虫害工作量计算阶段，
 未启用虫害的迁移前当前季仍从成熟时间和基础时长推导。
-枯萎优先于成熟。作物采用完整画布底边中点统一公式，
-不再使用人工阶段锚点和旧 offset 字段，详见 `15-crop-position-formula.md`。
+枯萎优先于成熟。作物采用schema=4的visible_contact_center统一落点，
+直立等比缩放、保留完整纹理，不再使用人工阶段锚点和旧offset字段。
+当前规则见 `22-crop-scene-mapping.md`；15号文档记录公式演变历史。
 虫子使用场景包中的固定坐标与稳定选帧，规则见 `16-pest-mechanics.md`。
 
 素材LRU默认32MiB，成图LRU默认8MiB；零预算禁用对应缓存，超限
@@ -113,21 +119,20 @@ scripts/export_render_assets.py将已有素材原样打包，附202种作物
 缺失时显示问号占位并记录静态警告，避免整个命令失败；尚未补齐
 缺失图片，也不推测相近作物素材替代。不会声称202种作物均有完整图片。
 
-## 原版用户面板恢复（2026-10-16）
+## 当前用户面板（2026-10-26核对）
 
-使用旧版 `background/userInfo.png` 与 `background/frame/frame.png`，
-按原有顺序叠放底板、140×150头像、头像框和昵称/经验/等级/货币。
-不再用通用圆角信息卡，不额外显示地块数量。无效头像继续安全降级。
-用户确认按原底图校正旧坐标：经验条位于原素材经验槽内，等级与两种
-货币不越出底板。普通、高清图统一按3072基准坐标缩放。
+面板使用metadata.json的panel配置及网页场景切片，按reference_canvas
+映射位置、头像、字段与经验条，不再按旧底板固定坐标绘制。
+头像无效时安全降级，普通与高清按同一面板配置缩放。
 
-保留旧版经验计算口径：本级已获经验为累计经验减本级累计门槛，
-分母仍为下一级累计经验门槛；等级门槛没有变化。点券取真实账户余额，
+本级已获经验为累计经验减200*level*(level+1)//2，
+分母为本级升级所需经验200*(level+1)，不使用下一级累计门槛。
+点券取真实账户余额，
 不继承旧版硬编码0。素材按目标尺寸缓存，查询仍只读一次一致快照；
 头像字节限制、缓存失效、后台限流和格式选项保留。
 
-本次离线测量见 `render-panel-restored-benchmark.json`，
-样图在 `runtime/panel-restored`；不代表真实平台发送耗时。
+`render-panel-restored-benchmark.json`及runtime/panel-restored是历史
+面板恢复测量，不代表当前面板或真实平台发送耗时。
 
 ## 测量与验证
 
@@ -137,7 +142,10 @@ python scripts/export_render_assets.py --check
 python scripts/verify_foundation.py
 ```
 
-本轮测量原始结果见 [render-benchmark.json](render-benchmark.json)。
+下表为早期历史测量，原始结果见[render-benchmark.json](render-benchmark.json)。
+2026-10-26新测位于runtime/archive-foundation-20261026/benchmark.json，
+使用当前源码生成六幅1024/1536的WebP、JPEG和PNG图并验证解码与暖缓存；
+本机环境为Windows/Python3.12.14/Pillow12.3。输出目录不进入Git。
 样例为构造的18块解锁地，包含空地、生长、成熟、枯萎与锁定地。
 输出和日志位于runtime/render-demo，不进入Git。
 
@@ -160,8 +168,6 @@ python scripts/verify_foundation.py
 字节与成图命中，不记录真实姓名、作用域、头像或完整快照。
 上传阶段由适配器单独记录，不能将发送接口返回当作客户端已显示。
 
-正式检查结果：45项测试全部通过，827文件基线与两类可复现导出
-检查通过。独立只读Verifier核对完整核心/渲染规格和源码后，A1-A13
-全部通过。验收报告见 [Comet报告](
-comet/changes/farm-core-foundation/verification.md)。通用Skill桥接不提供
-机器独立身份认证，流程仍要求用户明确接受后才归档。
+45项测试和早期A1-A13结论属于历史记录；本轮正式结果以Comet生成
+报告为准，不由旧报告推定。真实平台、其他CI矩阵与远端资源可用性
+不属于本机绘图样例的证明范围。

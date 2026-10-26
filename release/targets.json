@@ -10,7 +10,7 @@
       "observed_default_branch": "main",
       "entry_directory": "integrations/zhenxun",
       "enabled": true,
-      "preview_branch": "farm-preview",
+      "preview_branch": "main",
       "publish_by_default": false
     },
     {
