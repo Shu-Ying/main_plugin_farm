@@ -25,9 +25,13 @@ class NoneBotPackageTests(unittest.TestCase):
     def test_reproducible_standard_package_and_shared_runtime(self):
         other = build(ROOT, self.root / "second")
         self.assertEqual(self.bundle.read_bytes(), other.read_bytes())
-        self.assertEqual(self.files["nonebot_plugin_farm/runtime.py"], (
+        from format_generated import format_generated
+        expected = {"nonebot_plugin_farm/runtime.py": (
             ROOT / "integrations/shared/runtime.py"
-        ).read_bytes())
+        ).read_bytes()}
+        format_generated(ROOT, expected)
+        self.assertEqual(self.files["nonebot_plugin_farm/runtime.py"],
+                         expected["nonebot_plugin_farm/runtime.py"])
         for suffix in ("farm_core/data/plants.json",
                        "farm_render/data/asset-manifest.json",
                        "farm_render/data/font-manifest.json",

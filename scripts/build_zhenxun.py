@@ -11,6 +11,7 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 from verify_zhenxun import MANIFEST, ROOT_NAME, verify_files, verify_package
 from help_image import build_help_image
+from format_generated import format_generated
 
 
 def source_identity(root):
@@ -97,6 +98,7 @@ def build(root, output, *, help_image=None):
     }.items():
         files[name] = source.read_bytes()
     files["_version.py"] = f'__version__ = "{version}"\n'.encode()
+    format_generated(root, files)
     for name, content in files.items():
         if name.endswith(".py"):
             ast.parse(content, filename=name, feature_version=(3, 10))

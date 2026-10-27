@@ -38,6 +38,24 @@
 
 `如果没有你需要的框架，那么请在本仓库提交issue吧，Codex会尽量迁移的`
 
+## 本地生成插件
+
+构建环境需要 Python 3.10+、Pillow 和固定版本的 Ruff：
+
+```powershell
+python -m pip install "Pillow>=10.4,<13" -r requirements-build.txt
+```
+
+运行对应平台的 `build_*.cmd`，或使用
+`python scripts/build_plugin.py nonebot`（也支持 `zhenxun`、`astrbot`）。
+如需指定 Python，可设置 `FARM_PYTHON` 为已安装以上依赖的解释器路径。
+
+三个平台都会先对生成的 Python 文件整理导入并使用 Ruff 格式化，检查通过后
+再计算清单摘要和打包。配置沿用本仓库 `pyproject.toml`：Python 3.10、
+80 字符行宽、4 空格缩进、双引号和 LF 换行。构建不修改开发源文件，
+也不会将 Ruff 加入插件运行依赖；缺少 Ruff、版本不符或格式检查失败时停止构建。
+这里只检查导入排序和格式，不自动修复其他代码规则；功能仍需单独测试。
+
 ## 开源协议
 本项目采用的是`GPLv3`许可证进行开源
 

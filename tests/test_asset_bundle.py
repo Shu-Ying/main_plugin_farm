@@ -1,11 +1,13 @@
 from concurrent.futures import ThreadPoolExecutor
-from io import BytesIO
+from io import BytesIO, StringIO
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from farm_render import bundle
 
@@ -103,24 +105,43 @@ class BundleTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 bundle._copy_remote('https://farm.example/a', BytesIO(), 10)
 
-    def test_download_reports_throttled_progress_without_urls(self):
+    def test_download_refreshes_terminal_progress_on_same_line(self):
+        from rich.console import Console
+
         class Response(BytesIO):
             headers = {'Content-Length': '262144'}
             def geturl(self):
                 return 'https://farm.example/private/assets.zip'
-        with patch.object(bundle, 'urlopen', return_value=Response(
+        terminal = StringIO()
+        terminal.isatty = lambda: True
+        with patch.dict('os.environ', {'TERM': 'xterm-256color'}), \
+                patch.object(bundle.sys, 'stderr', terminal), \
+                patch('rich.console.Console', side_effect=lambda **kwargs:
+                      Console(**kwargs, force_terminal=True,
+                              force_interactive=True, legacy_windows=False,
+                              color_system='standard', width=120)), \
+                patch.object(bundle, 'urlopen', return_value=Response(
                 b'x' * 262144)), patch.object(
-                    bundle.time, 'monotonic',
-                    side_effect=[0, 0.2, 1.1, 1.2, 2.2]), \
+                    bundle, 'time', SimpleNamespace(monotonic=Mock(
+                        side_effect=[0, 1, 2, 10, 11]))), \
                 self.assertLogs(bundle.logger, level='INFO') as captured:
             bundle._copy_remote('https://farm.example/private/assets.zip',
                                 BytesIO(), 262144)
         messages = '\n'.join(captured.output)
         self.assertIn('下载开始', messages)
-        self.assertIn('50.0%', messages)
-        self.assertIn('100.0%', messages)
         self.assertIn('下载完成', messages)
-        self.assertEqual(messages.count('下载进度'), 2)
+        self.assertNotIn('下载进度', messages)
+        raw = terminal.getvalue()
+        progress = re.sub(r'\x1b\[[0-9;?]*[a-zA-Z]', '', raw)
+        self.assertIn('0.0%', progress)
+        self.assertIn('50.0%', progress)
+        self.assertIn('100.0%', progress)
+        self.assertIn('eta', progress)
+        self.assertIn('kB', progress)
+        self.assertIn('/s', progress)
+        self.assertGreater(raw.count('\r'), 2)
+        self.assertIn('\x1b[2K', raw)
+        self.assertNotIn('farm.example', progress)
         self.assertNotIn('farm.example', messages)
         self.assertNotIn('private', messages)
 
@@ -129,12 +150,15 @@ class BundleTests(unittest.TestCase):
             headers = {}
             def geturl(self):
                 return 'https://farm.example/a'
-        with patch.object(bundle, 'urlopen', return_value=Response(b'abc')), \
-                patch.object(bundle.time, 'monotonic', side_effect=[0, 1.1]), \
+        output = StringIO()
+        with patch.object(bundle.sys, 'stderr', output), \
+                patch.object(bundle, 'urlopen', return_value=Response(b'abc')), \
+                patch.object(bundle, 'time', SimpleNamespace(
+                    monotonic=Mock(side_effect=[0, 10]))), \
                 self.assertLogs(bundle.logger, level='INFO') as captured:
             bundle._copy_remote('https://farm.example/a', BytesIO(), 10)
         self.assertIn('下载完成', '\n'.join(captured.output))
-        self.assertIn('已下载', '\n'.join(captured.output))
+        self.assertEqual(output.getvalue(), '')
         self.assertNotIn('%', '\n'.join(captured.output))
         with patch.object(bundle, 'urlopen', side_effect=OSError('secret')), \
                 self.assertLogs(bundle.logger, level='INFO') as captured:
@@ -144,3 +168,63 @@ class BundleTests(unittest.TestCase):
         self.assertIn('下载失败', messages)
         self.assertNotIn('下载完成', messages)
         self.assertNotIn('secret', messages)
+
+    def test_terminal_progress_is_throttled_and_unknown_size_has_no_percent(self):
+        terminal = StringIO()
+        terminal.isatty = lambda: True
+        with patch.object(bundle.sys, 'stderr', terminal), \
+                patch('rich.progress.Progress') as rich_progress:
+            progress = bundle._DownloadProgress('字体包')
+            progress.update(0, 0, 0)
+            progress.update(65536, 0, 0.1)
+            progress.update(131072, 0, 0.2)
+            progress.close()
+        display = rich_progress.return_value
+        self.assertEqual(display.update.call_count, 2)
+        self.assertEqual(display.update.call_args.kwargs['completed'], 131072)
+        self.assertEqual(display.update.call_args.kwargs['percentage'], '')
+        self.assertIsNone(display.add_task.call_args.kwargs['total'])
+        self.assertFalse(rich_progress.call_args.kwargs['auto_refresh'])
+        self.assertFalse(rich_progress.call_args.kwargs['redirect_stdout'])
+        self.assertFalse(rich_progress.call_args.kwargs['redirect_stderr'])
+        display.stop.assert_called_once()
+
+    def test_download_failure_ends_progress_line(self):
+        class Response(BytesIO):
+            headers = {'Content-Length': '10'}
+
+            def geturl(self):
+                return 'https://farm.example/a'
+
+            def read(self, size):
+                raise OSError('private error')
+
+        terminal = StringIO()
+        terminal.isatty = lambda: True
+        with patch.object(bundle.sys, 'stderr', terminal), \
+                patch.object(bundle, 'urlopen', return_value=Response()), \
+                self.assertLogs(bundle.logger, level='INFO') as captured:
+            with self.assertRaises(OSError):
+                bundle._copy_remote('https://farm.example/a', BytesIO(), 10)
+        self.assertTrue(terminal.getvalue().endswith('\n'))
+        self.assertNotIn('100.0%', terminal.getvalue())
+        self.assertNotIn('下载完成', '\n'.join(captured.output))
+
+    def test_progress_display_failure_does_not_abort_download(self):
+        class Response(BytesIO):
+            headers = {'Content-Length': '3'}
+
+            def geturl(self):
+                return 'https://farm.example/a'
+
+        terminal = StringIO()
+        terminal.isatty = lambda: True
+        destination = BytesIO()
+        with patch.object(bundle.sys, 'stderr', terminal), \
+                patch.object(bundle, 'urlopen', return_value=Response(b'abc')), \
+                patch('rich.progress.Progress') as rich_progress:
+            display = rich_progress.return_value
+            display.refresh.side_effect = OSError('broken terminal')
+            bundle._copy_remote('https://farm.example/a', destination, 10)
+        self.assertEqual(destination.getvalue(), b'abc')
+        display.stop.assert_called_once()

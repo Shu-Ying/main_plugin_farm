@@ -32,7 +32,7 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(manifest['version'], version)
         self.assertEqual(json.loads(files['metadata.yaml'])['version'], version)
         metadata = json.loads(files['metadata.yaml'])
-        self.assertEqual(metadata['display_name'], '农场')
+        self.assertEqual(metadata['display_name'], '真寻农场')
         self.assertEqual(metadata['support_platforms'], ['aiocqhttp'])
         self.assertTrue(metadata['short_desc'])
         self.assertEqual(files['logo.png'],

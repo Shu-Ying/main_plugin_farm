@@ -43,7 +43,8 @@ foreach ($farmCandidate in $farmCandidates) {
         $farmPrefix = $farmCandidate.Prefix
         $farmProbe = 'import sys, importlib.util; sys.exit(' +
             'sys.version_info < (3, 10) or ' +
-            'importlib.util.find_spec("PIL") is None)'
+            'importlib.util.find_spec("PIL") is None or ' +
+            'importlib.util.find_spec("ruff") is None)'
         # Windows PowerShell 5.1 rewrites quotes in native arguments.
         # Use stdin instead of -c; keep this script ASCII for PS 5.1.
         $farmProbe | & $farmExe @farmPrefix -
@@ -56,8 +57,9 @@ foreach ($farmCandidate in $farmCandidates) {
     }
 }
 if (-not $farmPython) {
-    Write-Error ('Python 3.10+ with Pillow not found. ' +
-        'Install Python/Pillow or set FARM_PYTHON.')
+    Write-Error ('Python 3.10+ with Pillow and Ruff not found. ' +
+        'Install Pillow and requirements-build.txt in the same Python, ' +
+        'or set FARM_PYTHON.')
     exit 1
 }
 

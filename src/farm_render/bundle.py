@@ -5,6 +5,7 @@ from importlib import resources
 import json
 import logging
 from pathlib import Path
+import sys
 import tempfile
 import threading
 import time
@@ -41,6 +42,66 @@ def checked_url(url):
     return url
 
 
+class _DownloadProgress:
+    """仅在交互终端原位刷新；重定向输出不写控制字符。"""
+
+    def __init__(self, name):
+        self.name = name
+        self.stream = sys.stderr
+        self.enabled = bool(getattr(self.stream, 'isatty', lambda: False)())
+        self.last_report = float('-inf')
+        self.progress = None
+        self.task = None
+
+    def update(self, total, length, now, *, force=False):
+        if not self.enabled or (not force and now-self.last_report < 0.2):
+            return
+        try:
+            if self.progress is None:
+                from rich.console import Console
+                from rich.progress import (
+                    BarColumn, DownloadColumn, Progress, TextColumn,
+                    TimeRemainingColumn, TransferSpeedColumn,
+                )
+
+                console = Console(file=self.stream)
+                if not console.is_terminal:
+                    self.enabled = False
+                    return
+                self.progress = Progress(
+                    TextColumn('{task.description}', markup=False),
+                    BarColumn(bar_width=None),
+                    TextColumn('{task.fields[percentage]}'),
+                    DownloadColumn(), TransferSpeedColumn(),
+                    TextColumn('eta'), TimeRemainingColumn(),
+                    console=console, auto_refresh=False, expand=True,
+                    redirect_stdout=False, redirect_stderr=False,
+                )
+                self.task = self.progress.add_task(
+                    f'[农场] {self.name}', total=length if length > 0 else None,
+                    percentage='',
+                )
+                self.progress.start()
+            percentage = f'{min(1, total / length):.1%}' if length > 0 else ''
+            self.progress.update(self.task, completed=total,
+                                 percentage=percentage)
+            self.progress.refresh()
+        except Exception:
+            # 终端或显示库故障不影响资源下载，也不接管宿主输出流。
+            self.close()
+            self.enabled = False
+        self.last_report = now
+
+    def close(self):
+        progress, self.progress = self.progress, None
+        self.task = None
+        if progress is not None:
+            try:
+                progress.stop()
+            except Exception:
+                pass
+
+
 def _copy_remote(url, destination, limit):
     request = Request(checked_url(url), headers={'User-Agent': 'Farm-assets/1'})
     parts = urlsplit(url).path.split('/')
@@ -50,7 +111,7 @@ def _copy_remote(url, destination, limit):
         'assets.zip': '字体包' if 'fonts' in parts else '图片素材包',
     }.get(parts[-1], '资源')
     started = time.monotonic()
-    last_report = started
+    progress = _DownloadProgress(name)
     logger.info('农场下载开始：%s', name)
     try:
         with urlopen(request, timeout=15) as response:
@@ -60,6 +121,7 @@ def _copy_remote(url, destination, limit):
             if length > limit:
                 raise ValueError('Resource download exceeds limit')
             total = 0
+            progress.update(total, length, started)
             while True:
                 chunk = response.read(min(65536, limit-total+1))
                 if not chunk:
@@ -69,20 +131,13 @@ def _copy_remote(url, destination, limit):
                 if total > limit or now-started > 60:
                     raise ValueError('Resource download limit or timeout')
                 destination.write(chunk)
-                if now-last_report >= 1:
-                    if length > 0:
-                        logger.info(
-                            '农场下载进度：%s %.1f%%（%.2f/%.2f MiB）',
-                            name, min(100, total * 100 / length),
-                            total / 1048576, length / 1048576,
-                        )
-                    else:
-                        logger.info('农场下载进度：%s 已下载 %.2f MiB',
-                                    name, total / 1048576)
-                    last_report = now
+                progress.update(total, length, now)
+            progress.update(total, length, started, force=True)
+        progress.close()
         logger.info('农场下载完成：%s 共 %.2f MiB（待校验）',
                     name, total / 1048576)
     except Exception as error:
+        progress.close()
         logger.warning('农场下载失败：%s（%s）', name, type(error).__name__)
         raise
 

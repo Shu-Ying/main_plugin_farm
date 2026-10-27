@@ -12,7 +12,7 @@ license = {file = "LICENSE"}
 dependencies = []
 
 [project.optional-dependencies]
-render = ["Pillow>=10.4,<13"]
+render = ["Pillow>=10.4,<13", "rich>=13.9,<16"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -25,6 +25,13 @@ farm_core = ["data/*.json"]
 farm_render = ["data/*.json", "data/*.zip", "data/*.md", "data/*.txt"]
 
 [tool.ruff]
+required-version = "==0.8.6"
 line-length = 80
 target-version = "py310"
+indent-width = 4
 extend-exclude = ["legacy", ".agents", ".comet"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
