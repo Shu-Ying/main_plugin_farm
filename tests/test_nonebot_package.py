@@ -165,3 +165,59 @@ class NoneBotPackageTests(unittest.TestCase):
                 with self.assertRaises((ValueError, RuntimeError)):
                     publish(bundle, True, request)
             self.assertFalse(any(method == "PATCH" for method, _, _ in calls))
+
+    def test_release_tag_is_created_after_main_sync(self):
+        bundle, manifest = self.clean_package()
+        calls = []
+        def request(method, path, data):
+            calls.append((method, path, data))
+            if path == '':
+                return {'default_branch': 'main'}
+            if path.startswith('git/ref/tags/'):
+                return None
+            if path.startswith('git/ref/heads/'):
+                return {'object': {'sha': 'existing'}}
+            if path.startswith('contents/'):
+                return None
+            return {'sha': 'generated'}
+        with patch.dict('os.environ', {'FARM_RELEASE_TOKEN': 'test'}):
+            result = publish(bundle, True, request, release_tag=True)
+        self.assertTrue(result['tag_created'])
+        self.assertEqual(calls[-1], ('POST', 'git/refs', {
+            'ref': 'refs/tags/v' + manifest['version'], 'sha': 'generated',
+        }))
+        self.assertLess(next(i for i, call in enumerate(calls)
+                             if call[0] == 'PATCH'), len(calls) - 1)
+
+    def test_existing_release_tag_is_reused_or_conflict_blocks_all_writes(self):
+        bundle, manifest = self.clean_package()
+        for matching in (True, False):
+            calls = []
+            previous = json.loads(json.dumps(manifest))
+            if not matching:
+                previous['files']['README.md'] = '0' * 64
+            def request(method, path, data):
+                calls.append((method, path, data))
+                if path == '':
+                    return {'default_branch': 'main'}
+                if path.startswith('git/ref/tags/'):
+                    return {'object': {'sha': 'released'}}
+                if path.startswith('contents/'):
+                    return {'encoding': 'base64', 'content': base64.b64encode(
+                        json.dumps(previous).encode(),
+                    ).decode()}
+                self.fail('Unexpected request: ' + path)
+            with patch.dict('os.environ', {'FARM_RELEASE_TOKEN': 'test'}):
+                if matching:
+                    result = publish(bundle, True, request, release_tag=True)
+                    self.assertFalse(result['tag_created'])
+                else:
+                    with self.assertRaisesRegex(ValueError, 'version.txt'):
+                        publish(bundle, True, request, release_tag=True)
+            self.assertTrue(all(method == 'GET' for method, _, _ in calls))
+
+    def test_release_tag_dry_run_does_not_access_remote(self):
+        result = publish(self.bundle, release_tag=True,
+                         request=lambda *args: self.fail('Network in dry run'))
+        self.assertEqual(result['tag'], 'v' + result['version'])
+        self.assertFalse(result['tag_created'])

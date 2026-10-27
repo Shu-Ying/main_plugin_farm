@@ -97,6 +97,8 @@ def main():
     token = sync["steps"][-1]["env"]["FARM_RELEASE_TOKEN"]
     if token != "${{ secrets.FARM_RELEASE_TOKEN }}":
         raise ValueError("NoneBot must reuse FARM_RELEASE_TOKEN")
+    if '--release-tag' not in sync['steps'][-1]['run'].split():
+        raise ValueError('NoneBot sync must create its version release tag')
     generated = yaml.load((
         root / "release/nonebot/verify.yml"
     ).read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
@@ -113,6 +115,21 @@ def main():
                 "github.repository == 'Shu-Ying/nonebot_plugin_farm'"
             )):
         raise ValueError("NoneBot PyPI boundary differs")
+    for workflow, job in ((generated, 'verify'), (publishing, 'build')):
+        steps = workflow['jobs'][job]['steps']
+        if not any(step.get('run') == (
+                'python -m build --sdist --wheel --outdir dist'
+                ) for step in steps):
+            raise ValueError('NoneBot distributions must build inside dist')
+        upload = next(step for step in steps
+                      if step.get('uses', '').startswith(
+                          'actions/upload-artifact@'))
+        if (upload['with']['path'] != 'dist/*'
+                or upload['with'].get('if-no-files-found') != 'error'):
+            raise ValueError('NoneBot upload path must be dist/*')
+    if not any(step.get('run') == 'python -m twine check dist/*'
+               for step in publishing['jobs']['build']['steps']):
+        raise ValueError('NoneBot distribution check must use dist/*')
     steps = publishing["jobs"]["publish"]["steps"]
     if steps[-1]["with"]["password"] != "${{ secrets.PYPI_TOKEN }}":
         raise ValueError("Keep the existing PyPI secret")

@@ -157,6 +157,11 @@ class ZhenxunPackageTests(unittest.TestCase):
             self.assertEqual(archive.read(
                 "zhenxun_plugin_farm_preview/_version.py",
             ), b'__version__ = "1.2.3-preview.4"\n')
+            entry = archive.read(
+                'zhenxun_plugin_farm_preview/__init__.py',
+            ).decode()
+        self.assertIn('version="1.2.3-preview.4"', entry)
+        self.assertNotIn('__version__', entry)
 
     def clean_package(self):
         from verify_zhenxun import read_package, MANIFEST, ROOT_NAME

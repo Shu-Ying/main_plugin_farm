@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Sync main branch in NoneBot repository
+        description: Sync NoneBot repository and trigger PyPI version release
         default: false
         type: boolean
 permissions:
@@ -102,9 +102,9 @@ jobs:
         with:
           name: nonebot-preview
           path: incoming
-      - name: Sync validated NoneBot repository
+      - name: Sync NoneBot repository and trigger version release
         env:
           FARM_RELEASE_TOKEN: ${{ secrets.FARM_RELEASE_TOKEN }}
         run: >-
           python scripts/publish_nonebot.py
-          incoming/nonebot_plugin_farm-*.zip --publish
+          incoming/nonebot_plugin_farm-*.zip --publish --release-tag

@@ -54,6 +54,13 @@ def build(root, output, *, help_image=None):
         "requirements.txt", "config_migration.py",
     ):
         files[name] = (integration / name).read_bytes()
+    # 真寻市场静态读取版本字段，生成时写入字面量而非运行时变量。
+    marker = b'"__FARM_VERSION__"'
+    if files['__init__.py'].count(marker) != 1:
+        raise ValueError('Zhenxun entry requires one version placeholder')
+    files['__init__.py'] = files['__init__.py'].replace(
+        marker, json.dumps(version).encode('ascii'),
+    )
     files["runtime.py"] = (
         root / "integrations/shared/runtime.py"
     ).read_bytes()

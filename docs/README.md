@@ -6,6 +6,7 @@
 
 | 文档 | 用途 |
 |---|---|
+| [nonebot-release.md](nonebot-release.md) | NoneBot 同步、自动版本标签、PyPI发布及失败重跑 |
 | [catalogue-updates.md](catalogue-updates.md) | Service 作物维护、发布、启动更新、缓存与兼容回滚 |
 | [23-seasonal-events-and-rust-service.md](23-seasonal-events-and-rust-service.md) | 节日活动交互备选、Rust 发布中心、同步、资产事务、过期清理与上线规划（草案） |
 | [09-foundation.md](09-foundation.md) | 已实现的第一批核心、API、测试与限制 |

@@ -154,6 +154,7 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(plugin.runtime.data_dir,
                                  (self.root / 'existing-custom-data').resolve())
                 self.assertIsNone(plugin.runtime.font_path)
+                self.assertEqual(plugin.runtime.resource_source, 'Github')
                 # 使用真实开发素材预置缓存，模拟宿主测试不访问网络。
                 manifest = json.loads((ROOT /
                     'src/farm_render/data/asset-manifest.json').read_bytes())

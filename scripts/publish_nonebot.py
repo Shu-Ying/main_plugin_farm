@@ -4,6 +4,7 @@ import argparse
 import base64
 import json
 import os
+import re
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -37,13 +38,19 @@ def github(method, path, payload, token, allow_missing=False):
         ) from None
 
 
-def publish(package, confirmed=False, request=None):
+def publish(package, confirmed=False, request=None, *, release_tag=False):
     files = read_package(package)
     manifest = verify_files(files)
+    if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)?',
+                        manifest['version']):
+        raise ValueError('Invalid release version in version.txt')
     message = commit_message(manifest)
     result = {"repository": REPOSITORY, "branch": BRANCH,
               "version": manifest["version"], "message": message,
               "published": False}
+    tag = 'v' + manifest['version']
+    if release_tag:
+        result.update(tag=tag, tag_created=False)
     if not confirmed:
         return result
     if manifest["source"]["dirty"]:
@@ -53,10 +60,23 @@ def publish(package, confirmed=False, request=None):
         raise ValueError("Configure FARM_RELEASE_TOKEN in a protected job")
     call = request or (lambda method, path, data: github(
         method, path, data, token,
-        allow_missing=path.startswith(("git/ref/heads/", "contents/")),
+        allow_missing=path.startswith((
+            "git/ref/heads/", "git/ref/tags/", "contents/",
+        )),
     ))
     if not call("GET", "", None):
         raise ValueError(f"Target repository is not accessible: {REPOSITORY}")
+    if release_tag and call('GET', f'git/ref/tags/{tag}', None):
+        owned = call('GET', f'contents/FARM-MANIFEST.json?ref={tag}', None)
+        if owned is None or owned.get('encoding') != 'base64':
+            raise ValueError('Existing release is not managed; bump version.txt')
+        previous = json.loads(base64.b64decode(owned['content']))
+        if (previous.get('target') != 'nonebot'
+                or previous.get('plugin') != manifest['plugin']
+                or previous.get('version') != manifest['version']
+                or previous.get('files') != manifest['files']):
+            raise ValueError('Release tag has different files; bump version.txt')
+        return {**result, 'tag_reused': True}
     ref = call("GET", f"git/ref/heads/{BRANCH}", None)
     parent = ref["object"]["sha"] if ref else None
     if parent:
@@ -92,15 +112,25 @@ def publish(package, confirmed=False, request=None):
         call("POST", "git/refs", {
             "ref": f"refs/heads/{BRANCH}", "sha": commit["sha"],
         })
-    return {**result, "published": True, "commit": commit["sha"]}
+    result.update(published=True, commit=commit['sha'])
+    if release_tag:
+        # 仅创建不可变标签；失败保留已同步main，重跑时重新检查，不移动旧标签。
+        call('POST', 'git/refs', {
+            'ref': f'refs/tags/{tag}', 'sha': commit['sha'],
+        })
+        result['tag_created'] = True
+    return result
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("package")
     parser.add_argument("--publish", action="store_true")
+    parser.add_argument('--release-tag', action='store_true',
+                        help='同步后创建v版本标签，触发目标仓库PyPI发布')
     args = parser.parse_args()
-    print(json.dumps(publish(args.package, args.publish), ensure_ascii=False))
+    print(json.dumps(publish(args.package, args.publish,
+                             release_tag=args.release_tag), ensure_ascii=False))
 
 
 if __name__ == "__main__":
