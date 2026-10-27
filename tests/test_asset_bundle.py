@@ -1,6 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -12,6 +14,15 @@ ZIP = ROOT / 'src/farm_render/data/assets.zip'
 
 
 class BundleTests(unittest.TestCase):
+    def test_manifest_check_without_third_party_packages(self):
+        result = subprocess.run(
+            [sys.executable, '-S',
+             str(ROOT / 'scripts/check_asset_manifest.py')],
+            cwd=ROOT, capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('Verified external asset manifest', result.stdout)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

@@ -11,7 +11,7 @@ import uuid
 from zipfile import BadZipFile
 
 from farm_core.catalogue_release import (
-    FILES, MANIFEST_LIMIT, canonical, check_file, decode, load_catalogue,
+    FILES, MANIFEST_LIMIT, ROOTS, canonical, check_file, decode, load_catalogue,
     parse_manifest,
 )
 from farm_core.domain import FarmError
@@ -23,12 +23,6 @@ from .release_validation import validate_archive, validate_metadata
 logger = logging.getLogger(__name__)
 _LOCK = threading.RLock()
 _FAILURES = (OSError, ValueError, FarmError, EOFError, BadZipFile)
-ROOTS = {
-    'Github': 'https://raw.githubusercontent.com/Shu-Ying/'
-              'farm_service/main/catalogue',
-    'Gitea': 'https://gitea.diuse.work/Diuse/farm_service/'
-             'raw/branch/main/catalogue',
-}
 
 
 @dataclass(frozen=True)

@@ -15,6 +15,12 @@ FILES = {
 MANIFEST_LIMIT = 16 * 1024
 DIGEST = re.compile(r'[0-9a-f]{64}')
 VERSION = re.compile(r'[A-Za-z0-9._-]{1,64}')
+ROOTS = {
+    'Github': 'https://raw.githubusercontent.com/Shu-Ying/'
+              'farm_service/main/catalogue',
+    'Gitea': 'https://gitea.diuse.work/Diuse/farm_service/'
+             'raw/branch/main/catalogue',
+}
 
 
 def _pairs(items):

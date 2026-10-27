@@ -8,8 +8,7 @@ from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
-from farm_core.catalogue_release import parse_manifest
-from farm_render.catalogue_bundle import ROOTS
+from farm_core.catalogue_release import ROOTS, parse_manifest
 
 
 def check(root):
