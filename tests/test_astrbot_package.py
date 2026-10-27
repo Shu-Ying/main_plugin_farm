@@ -7,7 +7,7 @@ import sys
 import tempfile
 from types import ModuleType, SimpleNamespace
 import unittest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -62,19 +62,43 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
         with patch('verify_astrbot.MAX_ARCHIVE_BYTES', 1):
             with self.assertRaisesRegex(ValueError, '16 MiB'):
                 verify_package(first, marketplace=True)
-        self.assertEqual(files['runtime.py'], (
-            ROOT / 'integrations/shared/runtime.py'
-        ).read_bytes())
+        source_tree = ast.parse((ROOT / 'integrations/shared/runtime.py')
+                                .read_bytes())
+        built_tree = ast.parse(files['runtime.py'])
+        source_runtime = next(node for node in source_tree.body
+                              if isinstance(node, ast.ClassDef))
+        built_runtime = next(node for node in built_tree.body
+                             if isinstance(node, ast.ClassDef))
+        self.assertEqual(ast.dump(source_runtime), ast.dump(built_runtime))
+        self.assertFalse('_vendor/farm_core/__main__.py' in files)
         for name, content in files.items():
             self.assertNotIn('.git/', name)
             self.assertNotIn('farm.sqlite3', name)
             if name.endswith('.py'):
                 tree = ast.parse(content)
                 for node in ast.walk(tree):
+                    if isinstance(node, ast.Import):
+                        self.assertFalse(any(
+                            alias.name.split('.')[0] == 'logging'
+                            for alias in node.names
+                        ), name)
                     if isinstance(node, ast.ImportFrom):
                         self.assertFalse((node.module or '').startswith(
-                            ('nonebot', 'zhenxun'),
+                            ('nonebot', 'zhenxun', 'logging'),
                         ))
+        for snippet in (b'\nimport logging\n',
+                        b'\nlogger.setLevel(20)\n'):
+            invalid = dict(files)
+            invalid['main.py'] += snippet
+            invalid_manifest = json.loads(invalid['FARM-MANIFEST.json'])
+            invalid_manifest['files']['main.py'] = hashlib.sha256(
+                invalid['main.py'],
+            ).hexdigest()
+            invalid['FARM-MANIFEST.json'] = json.dumps(
+                invalid_manifest,
+            ).encode()
+            with self.assertRaisesRegex(ValueError, 'logging'):
+                verify_files(invalid)
         files['main.py'] += b'\n# tampered\n'
         with self.assertRaisesRegex(ValueError, 'checksum'):
             verify_files(files)
@@ -91,6 +115,7 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
         package.__path__ = [str(self.root / 'host/repository')]
         api = ModuleType('astrbot.api')
         api.AstrBotConfig = dict
+        api.logger = Mock()
         events = ModuleType('astrbot.api.event')
         commands = {}
 
@@ -152,6 +177,14 @@ class AstrBotPackageTests(unittest.IsolatedAsyncioTestCase):
                     side_effect=OSError('offline fixture'),
                 ):
                     await plugin.initialize()
+                self.assertIs(main.logger, api.logger)
+                self.assertIsNone(plugin.runtime.log_handler)
+                self.assertIsNone(plugin.runtime.console_handler)
+                self.assertFalse((plugin.runtime.data_dir /
+                                  'farm-preview.log').exists())
+                api.logger.info.assert_any_call(
+                    '农场启动：正在检查作物版本和本地缓存',
+                )
                 self.assertEqual(set(commands), set(main.COMMANDS))
 
                 class Event:

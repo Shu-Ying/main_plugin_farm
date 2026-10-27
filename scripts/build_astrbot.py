@@ -15,6 +15,33 @@ from verify_zhenxun import read_package as read_shared
 from help_image import build_help_image
 
 
+def host_logging(content):
+    """仅替换日志入口，保留共享业务源码和注释；未知用法交给包校验拒绝。"""
+    lines = content.decode('utf-8').splitlines(keepends=True)
+    edits = []
+    for node in ast.parse(content).body:
+        if (isinstance(node, ast.Import)
+                and any(alias.name == 'logging' for alias in node.names)):
+            if len(node.names) != 1 or node.names[0].asname:
+                raise ValueError('Unsupported logging import')
+            edits.append((node.lineno, node.end_lineno, ''))
+        if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and isinstance(node.value, ast.Call)
+                and isinstance(node.value.func, ast.Attribute)
+                and isinstance(node.value.func.value, ast.Name)
+                and node.value.func.value.id == 'logging'
+                and node.value.func.attr == 'getLogger'):
+            alias = node.targets[0].id
+            statement = 'from astrbot.api import logger'
+            if alias != 'logger':
+                statement += ' as ' + alias
+            edits.append((node.lineno, node.end_lineno, statement + '\n'))
+    for start, end, replacement in sorted(edits, reverse=True):
+        lines[start-1:end] = [replacement]
+    return ''.join(lines).encode('utf-8')
+
+
 def render_readme(root):
     template = (root / 'readme/astrbot.md').read_text(encoding='utf-8')
     marker = '<!-- FARM_COMMANDS -->'
@@ -49,7 +76,7 @@ def build(root, output, *, help_image=None):
     files = {name: content for name, content in shared.items()
              if name.startswith('_vendor/') or name in (
                  '_version.py', 'version.txt', 'LICENSE',
-             )}
+             ) if not name.endswith('/__main__.py')}
     source = root / 'integrations/astrbot'
     for name in ('main.py', 'avatars.py', '_conf_schema.json',
                  'requirements.txt', 'CHANGELOG.md'):
@@ -64,6 +91,9 @@ def build(root, output, *, help_image=None):
     files['README.md'] = render_readme(root)
     files['runtime.py'] = (
         root / 'integrations/shared/runtime.py'
+    ).read_bytes()
+    files['runtime_logging.py'] = (
+        source / 'runtime_logging.py'
     ).read_bytes()
     files['verify_package.py'] = (
         root / 'scripts/verify_astrbot.py'
@@ -82,6 +112,8 @@ def build(root, output, *, help_image=None):
     }, ensure_ascii=False, indent=2) + '\n').encode()
     for name, content in files.items():
         if name.endswith('.py'):
+            content = host_logging(content)
+            files[name] = content
             ast.parse(content, filename=name, feature_version=(3, 10))
     manifest = {
         'schema': 1, 'target': 'astrbot', 'plugin': ROOT_NAME,

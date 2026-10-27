@@ -102,3 +102,45 @@ class BundleTests(unittest.TestCase):
         with patch.object(bundle, 'urlopen', return_value=response):
             with self.assertRaises(ValueError):
                 bundle._copy_remote('https://farm.example/a', BytesIO(), 10)
+
+    def test_download_reports_throttled_progress_without_urls(self):
+        class Response(BytesIO):
+            headers = {'Content-Length': '262144'}
+            def geturl(self):
+                return 'https://farm.example/private/assets.zip'
+        with patch.object(bundle, 'urlopen', return_value=Response(
+                b'x' * 262144)), patch.object(
+                    bundle.time, 'monotonic',
+                    side_effect=[0, 0.2, 1.1, 1.2, 2.2]), \
+                self.assertLogs(bundle.logger, level='INFO') as captured:
+            bundle._copy_remote('https://farm.example/private/assets.zip',
+                                BytesIO(), 262144)
+        messages = '\n'.join(captured.output)
+        self.assertIn('下载开始', messages)
+        self.assertIn('50.0%', messages)
+        self.assertIn('100.0%', messages)
+        self.assertIn('下载完成', messages)
+        self.assertEqual(messages.count('下载进度'), 2)
+        self.assertNotIn('farm.example', messages)
+        self.assertNotIn('private', messages)
+
+    def test_unknown_length_and_failed_download_report_truthfully(self):
+        class Response(BytesIO):
+            headers = {}
+            def geturl(self):
+                return 'https://farm.example/a'
+        with patch.object(bundle, 'urlopen', return_value=Response(b'abc')), \
+                patch.object(bundle.time, 'monotonic', side_effect=[0, 1.1]), \
+                self.assertLogs(bundle.logger, level='INFO') as captured:
+            bundle._copy_remote('https://farm.example/a', BytesIO(), 10)
+        self.assertIn('下载完成', '\n'.join(captured.output))
+        self.assertIn('已下载', '\n'.join(captured.output))
+        self.assertNotIn('%', '\n'.join(captured.output))
+        with patch.object(bundle, 'urlopen', side_effect=OSError('secret')), \
+                self.assertLogs(bundle.logger, level='INFO') as captured:
+            with self.assertRaises(OSError):
+                bundle._copy_remote('https://farm.example/a', BytesIO(), 10)
+        messages = '\n'.join(captured.output)
+        self.assertIn('下载失败', messages)
+        self.assertNotIn('下载完成', messages)
+        self.assertNotIn('secret', messages)

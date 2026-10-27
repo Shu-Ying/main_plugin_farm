@@ -32,6 +32,9 @@ def build(root, output, *, help_image=None):
     files[prefix + "runtime.py"] = (
         root / "integrations/shared/runtime.py"
     ).read_bytes()
+    files[prefix + 'runtime_logging.py'] = (
+        root / 'integrations/shared/runtime_logging.py'
+    ).read_bytes()
     files[prefix + "_vendor/__init__.py"] = b'"""Private farm modules."""\n'
     for package in ("farm_core", "farm_render"):
         source = root / "src" / package

@@ -84,6 +84,45 @@ class ZhenxunRuntimeTests(unittest.IsolatedAsyncioTestCase):
         for action in ('seeds', 'crops'):
             self.assertIsInstance(await self.call(action, '1'), bytes)
 
+    async def test_start_progress_reaches_console_and_file(self):
+        import logging
+        from contextlib import redirect_stderr
+        from io import StringIO
+
+        await self.runtime.close()
+        output = StringIO()
+        package_log = logging.getLogger(self.package)
+        with patch.object(logging.getLogger(), 'handlers', []), \
+                patch.object(package_log, 'handlers', []), \
+                redirect_stderr(output):
+            await self.runtime.start()
+            await self.runtime.close()
+            self.assertFalse(package_log.handlers)
+        self.assertIn('正在检查作物版本', output.getvalue())
+        self.assertIn('使用内置作物版本', output.getvalue())
+        self.assertIn('字体', output.getvalue())
+        self.assertIn('农场启动完成', output.getvalue())
+        saved = (self.runtime.data_dir / 'farm-preview.log').read_text(
+            encoding='utf-8',
+        )
+        self.assertIn('正在检查作物版本', saved)
+
+    async def test_start_reuses_existing_console_without_duplicate_output(self):
+        import logging
+        from io import StringIO
+
+        await self.runtime.close()
+        output = StringIO()
+        handler = logging.StreamHandler(output)
+        handler.setLevel(logging.INFO)
+        with patch.object(logging.getLogger(), 'handlers', [handler]):
+            await self.runtime.start()
+            await self.runtime.start()
+            self.assertIsNone(self.runtime.console_handler)
+            await self.runtime.close()
+        self.assertEqual(output.getvalue().count('正在检查作物版本'), 1)
+        self.assertEqual(output.getvalue().count('农场启动完成'), 1)
+
     async def test_catalogue_is_loaded_once_before_store_initialization(self):
         import json
         from unittest.mock import AsyncMock

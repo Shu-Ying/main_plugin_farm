@@ -1,8 +1,10 @@
 import asyncio
 import importlib.util
 from pathlib import Path
+import sys
+from types import ModuleType
 import unittest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -10,6 +12,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class AvatarTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        api = ModuleType('astrbot.api')
+        api.logger = Mock()
+        host = patch.dict(sys.modules, {'astrbot.api': api})
+        host.start()
+        self.addCleanup(host.stop)
         spec = importlib.util.spec_from_file_location(
             'farm_astrbot_avatars',
             ROOT / 'integrations/astrbot/avatars.py',
