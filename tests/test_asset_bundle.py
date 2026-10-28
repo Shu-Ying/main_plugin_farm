@@ -209,7 +209,8 @@ class BundleTests(unittest.TestCase):
 
         terminal = StringIO()
         terminal.isatty = lambda: True
-        with patch.object(bundle.sys, 'stderr', terminal), \
+        with patch.dict('os.environ', {'TERM': 'xterm-256color'}), \
+                patch.object(bundle.sys, 'stderr', terminal), \
                 patch('rich.console.Console', side_effect=lambda **kwargs:
                       Console(**kwargs, force_terminal=True,
                               force_interactive=True, legacy_windows=False,
@@ -218,8 +219,10 @@ class BundleTests(unittest.TestCase):
                 self.assertLogs(bundle.logger, level='INFO') as captured:
             with self.assertRaises(OSError):
                 bundle._copy_remote('https://farm.example/a', BytesIO(), 10)
-        self.assertTrue(terminal.getvalue().endswith('\n'))
-        self.assertNotIn('100.0%', terminal.getvalue())
+        raw = terminal.getvalue()
+        progress = re.sub(r'\x1b\[[0-9;?]*[a-zA-Z]', '', raw)
+        self.assertTrue(progress.endswith('\n'), repr(raw))
+        self.assertNotIn('100.0%', progress)
         self.assertNotIn('下载完成', '\n'.join(captured.output))
 
     def test_progress_display_failure_does_not_abort_download(self):
