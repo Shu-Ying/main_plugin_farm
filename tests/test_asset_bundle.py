@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO, StringIO
+from itertools import count
 from pathlib import Path
 import re
 import subprocess
@@ -107,6 +108,7 @@ class BundleTests(unittest.TestCase):
 
     def test_download_refreshes_terminal_progress_on_same_line(self):
         from rich.console import Console
+        from rich.progress import Progress
 
         class Response(BytesIO):
             headers = {'Content-Length': '262144'}
@@ -114,12 +116,16 @@ class BundleTests(unittest.TestCase):
                 return 'https://farm.example/private/assets.zip'
         terminal = StringIO()
         terminal.isatty = lambda: True
+        progress_clock = count()
         with patch.dict('os.environ', {'TERM': 'xterm-256color'}), \
                 patch.object(bundle.sys, 'stderr', terminal), \
                 patch('rich.console.Console', side_effect=lambda **kwargs:
                       Console(**kwargs, force_terminal=True,
                               force_interactive=True, legacy_windows=False,
                               color_system='standard', width=120)), \
+                patch('rich.progress.Progress', side_effect=lambda *args,
+                      **kwargs: Progress(*args, **kwargs,
+                                         get_time=lambda: next(progress_clock))), \
                 patch.object(bundle, 'urlopen', return_value=Response(
                 b'x' * 262144)), patch.object(
                     bundle, 'time', SimpleNamespace(monotonic=Mock(
@@ -190,6 +196,8 @@ class BundleTests(unittest.TestCase):
         display.stop.assert_called_once()
 
     def test_download_failure_ends_progress_line(self):
+        from rich.console import Console
+
         class Response(BytesIO):
             headers = {'Content-Length': '10'}
 
@@ -202,6 +210,10 @@ class BundleTests(unittest.TestCase):
         terminal = StringIO()
         terminal.isatty = lambda: True
         with patch.object(bundle.sys, 'stderr', terminal), \
+                patch('rich.console.Console', side_effect=lambda **kwargs:
+                      Console(**kwargs, force_terminal=True,
+                              force_interactive=True, legacy_windows=False,
+                              color_system='standard', width=120)), \
                 patch.object(bundle, 'urlopen', return_value=Response()), \
                 self.assertLogs(bundle.logger, level='INFO') as captured:
             with self.assertRaises(OSError):
